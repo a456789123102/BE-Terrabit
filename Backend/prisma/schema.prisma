@@ -35,13 +35,12 @@ model Product {
   name        String
   price       Float?
   quantity    Int
-  image       String
+  image       String?
   description String
-  categoryId  Int
   createdAt   DateTime       @default(now())
   updatedAt   DateTime       @updatedAt
 
-  category    Category @relation(fields: [categoryId], references: [id])
+  ProductCategory ProductCategory[]  
   Cart        Cart[]
   OrderItem   OrderItem[]
   Review      Review[]
@@ -51,9 +50,21 @@ model Product {
 model Category {
   id        Int      @id @default(autoincrement())
   name      String
-  products  Product[]
+  ProductCategory ProductCategory[]  
   Thread    Thread[]
 }
+
+model ProductCategory {
+  productId  Int
+  categoryId Int
+
+  product    Product   @relation(fields: [productId], references: [id])
+  category   Category  @relation(fields: [categoryId], references: [id])
+
+  @@id([productId, categoryId])
+}
+
+
 
 model Addresses {
   id        Int      @id @default(autoincrement())

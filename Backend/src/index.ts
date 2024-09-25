@@ -1,10 +1,10 @@
 import express from 'express';
 import bodyParser from 'body-parser';
-import { verifyUser,verifyAdmin } from "./middlewares/verify";
 
 import authRoute from "./routes/authRoute";
 import userRoute from "./routes/userRoute";
-import adminRoute from "./routes/adminRoute";
+import categoryRoute from "./routes/categoryRoute";
+import productRoute from "./routes/productRoute";
 
 import dotenv from 'dotenv';
 
@@ -19,8 +19,9 @@ app.use(bodyParser.urlencoded({ extended: true }));
 const prefix = '/backend/api';
 
 app.use(prefix +"/auth", authRoute);
-app.use(prefix +"/user",verifyUser, userRoute);
-app.use(prefix +"/admin",verifyAdmin, adminRoute);
+app.use(prefix +"/user",userRoute);
+app.use(prefix +"/category",categoryRoute);
+app.use(prefix +"/product", productRoute);
 
 const port = process.env.PORT || 7001;
 app.listen(port, () => console.log(`Listening on port ${port}`));
