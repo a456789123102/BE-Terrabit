@@ -18,7 +18,7 @@ model User {
   email     String      @unique
   username  String      @unique
   password  String
-  image     String? 
+  image     String?
   isAdmin   Boolean     @default(false)
   createdAt DateTime    @default(now())
   updatedAt DateTime    @updatedAt
@@ -31,40 +31,38 @@ model User {
 }
 
 model Product {
-  id          Int            @id @default(autoincrement())
-  name        String
+  id          Int      @id @default(autoincrement())
+  name        String   @unique
   price       Float?
   quantity    Int
   image       String?
   description String
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @updatedAt
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
-  ProductCategory ProductCategory[]  
-  Cart        Cart[]
-  OrderItem   OrderItem[]
-  Review      Review[]
-  Image       ProductImage[]
+  ProductCategory ProductCategory[]
+  Cart            Cart[]
+  OrderItem       OrderItem[]
+  Review          Review[]
+  Image           ProductImage[]
 }
 
 model Category {
-  id        Int      @id @default(autoincrement())
-  name      String
-  ProductCategory ProductCategory[]  
-  Thread    Thread[]
+  id              Int               @id @default(autoincrement())
+  name            String
+  ProductCategory ProductCategory[]
+  Thread          Thread[]
 }
 
 model ProductCategory {
   productId  Int
   categoryId Int
 
-  product    Product   @relation(fields: [productId], references: [id])
-  category   Category  @relation(fields: [categoryId], references: [id])
+  product  Product  @relation(fields: [productId], references: [id])
+  category Category @relation(fields: [categoryId], references: [id])
 
   @@id([productId, categoryId])
 }
-
-
 
 model Addresses {
   id        Int      @id @default(autoincrement())
@@ -166,9 +164,9 @@ model Reply {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  user  User   @relation(fields: [userId], references: [id])
+  user   User   @relation(fields: [userId], references: [id])
   thread Thread @relation(fields: [threadId], references: [id])
-  Like  Like[]
+  Like   Like[]
 }
 
 model Like {

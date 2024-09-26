@@ -57,7 +57,15 @@ export const updateCategory = async (req: Request, res: Response) => {
         return res.status(500).json({ message: 'Error while updating category', error });
     }
 }
-
+//find
+export const getAllCategory = async (req:Request, res: Response) => {
+    try {
+        const categories = await prisma.category.findMany();
+        res.status(200).json(categories);
+    } catch (error) {
+        res.status(500).json({ message: 'Error while getting categories' });
+    }
+}
 //delete 
                    
 export const deleteCategory = async (req: Request, res: Response) => {
