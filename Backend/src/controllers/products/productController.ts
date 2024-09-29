@@ -12,21 +12,18 @@ export const createProduct = async (req: Request, res: Response) => {
         if (!name || !price || !categories || !quantity || !description) {
             return res.status(400).json({ message: 'All fields are required' });
         }
-        // ตรวจสอบว่ามีชื่อสินค้านี้ในฐานข้อมูลหรือไม่ (ชื่อซ้ำ)
         const existingProduct = await prisma.product.findUnique({
             where: { name }
         });
         if (existingProduct) {
             return res.status(400).json({ message: 'Product name already exists' });
         }
-        // ตรวจสอบว่าหมวดหมู่ที่ระบุมีอยู่จริงหรือไม่
         const validCategories = await prisma.category.findMany({
             where: { id: { in: categories } }
         });
         if (validCategories.length !== categories.length) {
             return res.status(400).json({ message: 'One or more categories are invalid' });
         }
-        // สร้าง product ใหม่
         const product = await prisma.product.create({
             data: {
                 name,
@@ -35,7 +32,6 @@ export const createProduct = async (req: Request, res: Response) => {
                 description
             }
         });
-        // เพิ่มความสัมพันธ์ระหว่าง Product กับ Categories ลงในตารางกลาง (ProductCategory)
         const productCategories = categories.map((categoryId: number) => ({
             productId: product.id,
             categoryId: categoryId
@@ -52,7 +48,6 @@ export const createProduct = async (req: Request, res: Response) => {
 };
 
 // findAll product
-
 export const findAllProducts = async (req: Request, res: Response) => {
     try {
         // รับค่าคำค้นหาจาก query params
@@ -66,6 +61,7 @@ export const findAllProducts = async (req: Request, res: Response) => {
         if (searchQuery) {
             where.name = {
                 contains: searchQuery.toLowerCase() // จัดการคำค้นหาด้วยการแปลงเป็นตัวพิมพ์เล็ก
+                
             };
         }
 
@@ -87,7 +83,7 @@ export const findAllProducts = async (req: Request, res: Response) => {
             include: {
                 ProductCategory: {
                     include: {
-                        category: true, // รวมข้อมูลหมวดหมู่ที่เชื่อมโยงผ่าน ProductCategory
+                        category: true, 
                     },
                 },
             },
@@ -100,3 +96,57 @@ export const findAllProducts = async (req: Request, res: Response) => {
         return res.status(500).json({ message: 'Error while getting products', error });
     }
 };
+
+//findOneProduct 
+export const getProductById = async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+        const productId = parseInt(id);
+
+        const product = await prisma.product.findUnique({
+            where: { id: productId },
+            include: {
+                ProductCategory: {
+                    include: {
+                        category: true,
+                    },
+                },
+                Image: true, 
+                Review: {
+                    select: {  
+                        rating: true,
+                        comments: true,
+                        user: { 
+                            select: {
+                                username: true, 
+                            },
+                        },
+                    },
+                },
+            },
+        });
+
+        // ตรวจสอบว่าพบสินค้าไหม
+        if (!product) {
+            return res.status(404).json({ message: 'ไม่พบสินค้า' });
+        }
+
+        // ถ้าไม่มีรูปภาพ ให้ตั้งเป็น array ว่าง
+        if (!product.Image) {
+            product.Image = [];
+        }
+
+        // ถ้าไม่มีรีวิว ให้ตั้งเป็น array ว่าง
+        if (!product.Review) {
+            product.Review = [];
+        }
+
+        return res.status(200).json(product);
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ message: 'เกิดข้อผิดพลาดในการดึงข้อมูลสินค้า', error });
+    }
+}
+
+
+

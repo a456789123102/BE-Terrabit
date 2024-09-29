@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
-import { CustomRequest } from '../middlewares/verify';
+import { CustomRequest } from '../../middlewares/verify';
 import { PrismaClient, Prisma } from "@prisma/client";
 import dotenv from 'dotenv';
 

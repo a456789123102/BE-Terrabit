@@ -1,11 +1,12 @@
 import express from 'express';
 import bodyParser from 'body-parser';
 
-import authRoute from "./routes/authRoute";
-import userRoute from "./routes/userRoute";
-import categoryRoute from "./routes/categoryRoute";
-import productRoute from "./routes/productRoute";
-
+import authRoute from "./routes/users/authRoute";
+import userRoute from "./routes/users/userRoute";
+import categoryRoute from "./routes/product/categoryRoute";
+import productRoute from "./routes/product/productRoute";
+import reviewRoute from "./routes/product/reviewRoute";
+import imageRoute from "./routes/product/imageRoute";
 import dotenv from 'dotenv';
 
 
@@ -22,6 +23,7 @@ app.use(prefix +"/auth", authRoute);
 app.use(prefix +"/user",userRoute);
 app.use(prefix +"/category",categoryRoute);
 app.use(prefix +"/product", productRoute);
-
+app.use(prefix +"/reviews", reviewRoute);
+app.use(prefix+ "/image",imageRoute)
 const port = process.env.PORT || 7001;
 app.listen(port, () => console.log(`Listening on port ${port}`));

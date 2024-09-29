@@ -1,6 +1,6 @@
-import {me,getAllUsers } from "../controllers/userController"; 
+import {me,getAllUsers } from "../../controllers/users/userController"; 
 import { Router } from "express";
-import { verifyUser,verifyAdmin } from "../middlewares/verify";
+import { verifyUser,verifyAdmin } from "../../middlewares/verify";
 
 const router = Router();
 

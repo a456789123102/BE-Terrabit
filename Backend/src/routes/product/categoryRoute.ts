@@ -3,8 +3,8 @@ import {
   updateCategory,
   deleteCategory,
   getAllCategory
-} from "../controllers/categoryController";
-import { verifyUser, verifyAdmin } from "../middlewares/verify";
+} from "../../controllers/products/categoryController";
+import { verifyUser, verifyAdmin } from "../../middlewares/verify";
 import { Router } from "express";
 
 const router = Router();
