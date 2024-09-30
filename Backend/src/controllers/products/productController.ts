@@ -86,6 +86,14 @@ export const findAllProducts = async (req: Request, res: Response) => {
                         category: true, 
                     },
                 },
+                Image: {
+                    where: {
+                        name: "CoverImage",  // กรองเฉพาะภาพที่มีชื่อว่า "Cover Image"
+                    },
+                    select: {
+                        imageUrl: true,  // แสดงเฉพาะ url ของภาพ
+                    },
+                },
             },
         });
 
