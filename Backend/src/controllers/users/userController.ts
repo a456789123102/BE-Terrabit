@@ -22,7 +22,7 @@ export const getAllUsers = async (req: Request, res: Response) => {
       const userId = (req as any).user.id;
       const users = await prisma.user.findUnique({
         where: { id: userId },
-        select: { id: true, email: true, username: true, createdAt: true }
+        select: { id: true, email: true, username: true, isAdmin: true, createdAt: true }
       });
       res.status(200).json(users);
     } catch (error) {
