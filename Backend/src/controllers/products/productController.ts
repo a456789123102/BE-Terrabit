@@ -114,26 +114,20 @@ export const getProductById = async (req: Request, res: Response) => {
         const product = await prisma.product.findUnique({
             where: { id: productId },
             include: {
-                ProductCategory: {
-                    include: {
-                        category: true,
-                    },
+              ProductCategory: {
+                include: { category: true },
+              },
+              Image: true, // ดึงข้อมูลรูปภาพทั้งหมดที่เกี่ยวข้อง
+              Review: {
+                select: {
+                  rating: true,
+                  comments: true,
+                  user: { select: { username: true } },
                 },
-                Image: true, 
-                Review: {
-                    select: {  
-                        rating: true,
-                        comments: true,
-                        user: { 
-                            select: {
-                                username: true, 
-                            },
-                        },
-                    },
-                },
+              },
             },
-        });
-
+          });
+          console.log('Product Data:', product);
         // ตรวจสอบว่าพบสินค้าไหม
         if (!product) {
             return res.status(404).json({ message: 'ไม่พบสินค้า' });
