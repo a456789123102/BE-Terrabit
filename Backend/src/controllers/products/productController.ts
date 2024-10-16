@@ -6,6 +6,7 @@ const prisma = new PrismaClient();
 // create product
 export const createProduct = async (req: Request, res: Response) => {
   try {
+    console.log("Product_create")
     const { name, price, categories, quantity, description } = req.body;
 
     // ตรวจสอบว่ามีข้อมูลครบถ้วนหรือไม่
@@ -54,6 +55,7 @@ export const createProduct = async (req: Request, res: Response) => {
 // findAll product
 export const findAllProducts = async (req: Request, res: Response) => {
   try {
+    console.log("Product_findall")
     // รับค่าคำค้นหาจาก query params
     const searchQuery = req.query.search as string | undefined;
     const categoryIds = req.query.category as string | string[] | undefined;
@@ -110,10 +112,39 @@ export const findAllProducts = async (req: Request, res: Response) => {
       .json({ message: "Error while getting products", error });
   }
 };
+//getAllProductsByCatIds
+export const findAllProductsByCatIds = async (req: Request, res: Response) => {
+try {
+  console.log("Product_findAllByCatIds")
+  const {id} = req.params;
+  const categoryId = parseInt(id);
+  if (isNaN(categoryId)) {
+    return res.status(400).json({ error: 'Invalid categoryId' });
+  }
+  const product = await prisma.product.findMany({
+    where:{
+      ProductCategory:{
+        some:{
+          categoryId: categoryId
+        }
+      }
+    }
+  });
+
+  if (product.length === 0) {
+    return res.status(404).json({ message: 'No products found for this category' });
+  }
+   return res.json(product);
+} catch (error) {
+  console.error('Error fetching products:', error);
+  throw error;
+}
+}
 
 //findOneProduct
 export const getProductById = async (req: Request, res: Response) => {
   try {
+    console.log("Product_getById")
     const { id } = req.params;
     const productId = parseInt(id);
 
@@ -164,6 +195,7 @@ export const getProductById = async (req: Request, res: Response) => {
 // edit product
 export const editProduct = async (req: Request, res: Response) => {
     try {
+      console.log("Product_edit")
       const { id } = req.params;
       const productId = parseInt(id);
       const { name, price, categories, quantity, description } = req.body;

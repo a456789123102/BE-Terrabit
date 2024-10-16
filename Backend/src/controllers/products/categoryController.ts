@@ -4,6 +4,7 @@ import { PrismaClient, Prisma } from "@prisma/client";
 const prisma = new PrismaClient();
 //create
 export const createCategory = async (req: Request, res: Response) => {
+    console.log("Cat_create")
     try {
         const { name } = req.body;
         if (!name) {
@@ -25,6 +26,7 @@ export const createCategory = async (req: Request, res: Response) => {
 //update
 export const updateCategory = async (req: Request, res: Response) => {
     try {
+        console.log("Cat_update")
         const { id } = req.params; 
         const { name } = req.body; 
 
@@ -57,19 +59,21 @@ export const updateCategory = async (req: Request, res: Response) => {
         return res.status(500).json({ message: 'Error while updating category', error });
     }
 }
-//find
+//getAll
 export const getAllCategory = async (req:Request, res: Response) => {
     try {
+        console.log("Cat_getAll")
         const categories = await prisma.category.findMany();
         res.status(200).json(categories);
     } catch (error) {
         res.status(500).json({ message: 'Error while getting categories' });
     }
 }
+
 //delete 
-                   
 export const deleteCategory = async (req: Request, res: Response) => {
     try {
+        console.log("Cat_delete")
         const { id } = req.params;
 
         if (!id) {
