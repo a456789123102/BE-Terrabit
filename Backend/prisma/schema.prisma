@@ -198,3 +198,15 @@ model Announcement {
 
   User User @relation(fields: [userId], references: [id])
 }
+
+model Career {
+  id          Int      @id @default(autoincrement())
+  title       String
+  site        String   // เปลี่ยนจาก company เป็น site
+  description String
+  type        String
+  location    String
+  salary      Float
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}

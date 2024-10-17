@@ -7,6 +7,7 @@ import categoryRoute from "./routes/product/categoryRoute";
 import productRoute from "./routes/product/productRoute";
 import reviewRoute from "./routes/product/reviewRoute";
 import imageRoute from "./routes/product/imageRoute";
+import careerRoute from "./routes/career/careerRoute";
 import dotenv from 'dotenv';
 
 
@@ -24,6 +25,7 @@ app.use(prefix +"/user",userRoute);
 app.use(prefix +"/category",categoryRoute);
 app.use(prefix +"/product", productRoute);
 app.use(prefix +"/reviews", reviewRoute);
-app.use(prefix+ "/image",imageRoute)
+app.use(prefix+ "/image",imageRoute);
+app.use(prefix+ "/career",careerRoute);
 const port = process.env.PORT || 7001;
 app.listen(port, () => console.log(`Listening on port ${port}`));
