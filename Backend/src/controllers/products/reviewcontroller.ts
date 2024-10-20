@@ -69,7 +69,6 @@ const existingReview = await prisma.review.findUnique({
 if (!existingReview){
     return res.status(404).json({ message: 'Review not found' });
 }
-
 const updatedReview = await prisma.review.update({
     where: {
         productId_userId: { 
@@ -85,6 +84,37 @@ const updatedReview = await prisma.review.update({
 return res.status(200).json({ message: 'Review updated successfully', category: updatedReview });
 
     } catch (error) {
-        
+        console.log(error);
+        return res.status(500).json({ message: 'Error updating review', error });
     }
 }
+
+//get reviewsById
+
+export const getReviewsById = async (req: Request, res: Response) => {
+    try {
+        const { id } = req.params;
+        const productId = parseInt(id);
+        const reviews = await prisma.review.findMany({
+            where: {
+                productId: productId,
+            },
+            select: {
+                id: true,
+                rating: true,
+                comments: true,
+                createdAt: true,
+                
+                user: {
+                    select: {
+                        id: true,
+                        username: true,
+                    },
+                },
+            },
+        });
+        res.json(reviews);
+    } catch (error) {
+        res.status(500).json({ error: "An error occurred while fetching reviews" });
+    }
+};
