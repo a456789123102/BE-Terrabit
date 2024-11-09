@@ -7,7 +7,7 @@ const prisma = new PrismaClient();
 export const createProduct = async (req: Request, res: Response) => {
   try {
     console.log("Product_create")
-    const { name, price, categories, quantity, description } = req.body;
+    const { name, price,discount, categories, quantity, description } = req.body;
 
     // ตรวจสอบว่ามีข้อมูลครบถ้วนหรือไม่
     if (!name || !price || !categories || !quantity || !description) {
@@ -27,10 +27,18 @@ export const createProduct = async (req: Request, res: Response) => {
         .status(400)
         .json({ message: "One or more categories are invalid" });
     }
+    let finalPrice = price; 
+
+    if (discount && discount > 0) {
+      finalPrice = price * (1 - discount);
+    }
+
     const product = await prisma.product.create({
       data: {
         name,
         price,
+        finalPrice,
+        discount,
         quantity,
         description,
       },
@@ -198,7 +206,7 @@ export const editProduct = async (req: Request, res: Response) => {
       console.log("Product_edit")
       const { id } = req.params;
       const productId = parseInt(id);
-      const { name, price, categories, quantity, description } = req.body;
+      const { name, price,discount, categories, quantity, description } = req.body;
   
       // ตรวจสอบว่ามีสินค้าหรือไม่
       const existingProduct = await prisma.product.findUnique({
@@ -221,7 +229,7 @@ export const editProduct = async (req: Request, res: Response) => {
       // อัปเดตข้อมูลสินค้า
       const updatedProduct = await prisma.product.update({
         where: { id: productId },
-        data: { name, price, quantity, description },
+        data: { name, price,discount, quantity, description },
       });
   
       // ลบความสัมพันธ์ category ทั้งหมดที่มีอยู่ก่อน
