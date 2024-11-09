@@ -6,6 +6,7 @@ const prisma = new PrismaClient();
 // Find all users
 export const getAllUsers = async (req: Request, res: Response) => {
     try {
+      console.log("user_getAll")
       const users = await prisma.user.findMany(
         {select: {id: true, email: true, username: true, isAdmin: true,createdAt: true}}
       );
@@ -19,6 +20,7 @@ export const getAllUsers = async (req: Request, res: Response) => {
   //Find Own Users
   export const me = async (req: Request, res: Response) => {
     try {
+      console.log("user_me")
       const userId = (req as any).user.id;
       const users = await prisma.user.findUnique({
         where: { id: userId },

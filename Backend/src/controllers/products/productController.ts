@@ -225,11 +225,17 @@ export const editProduct = async (req: Request, res: Response) => {
           return res.status(400).json({ message: "Product name already exists" });
         }
       }
+      let finalPrice = price; 
+
+      if (discount && discount > 0) {
+        finalPrice = price * (1 - discount);
+      }
+  
   
       // อัปเดตข้อมูลสินค้า
       const updatedProduct = await prisma.product.update({
         where: { id: productId },
-        data: { name, price,discount, quantity, description },
+        data: { name, price,discount,finalPrice, quantity, description },
       });
   
       // ลบความสัมพันธ์ category ทั้งหมดที่มีอยู่ก่อน

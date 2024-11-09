@@ -12,6 +12,7 @@ const secretKey = process.env.JWT_SECRET_KEY;
 //register
 export const register = async (req: Request, res: Response) => {
   try {
+    console.log("auth_register")
     const { email, username, password, image } = req.body;
 
     if (!email || !username || !password) {
@@ -41,6 +42,7 @@ export const register = async (req: Request, res: Response) => {
 // login
 export const login = async (req:Request, res:Response) => {
   try {
+    console.log("auth_login")
     const {username ,password} = req.body
     if(!username || !password){
       return res.status(400).json({ message: 'Username and password are required' });
