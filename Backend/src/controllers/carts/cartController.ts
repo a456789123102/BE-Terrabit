@@ -58,9 +58,64 @@ export const getPersonalCart = async (req:Request, res:Response) =>{
         }
         const cartItems = await prisma.cart.findMany({
             where: { userId},
+            select: {
+              id: true,
+              userId: true,
+              productId: true,
+              quantity: true,
+              totalPrice: true,
+              isCheckedOut: true,
+              createdAt: true,
+              updatedAt: true,
+          },
         });
         return res.status(200).json(cartItems);
     } catch (error) {
         return res.status(500).json({ error: "Failed to get personal cart", details: error })
     }
+}
+
+//checkout
+
+export const checkoutCart = async (req:Request, res:Response) => {
+  console.log("cart_checkout");
+  try {
+    const userId = (req as any).user.id;
+    //pull all cart item thats not checkout;
+    const cartItems = await prisma.cart.findMany({
+      where: { userId, isCheckedOut: false },
+    });
+    if (cartItems.length === 0) {
+      return res.status(400).json({ message: "No items in cart to checkout." });
+    }
+    //calculate total price
+    const totalPrice = cartItems.reduce((sum, item) => sum + (item.totalPrice || 0), 0);
+
+    //สร้าง order
+    const newOrder = await prisma.order.create({
+      data: { userId, 
+        totalPrice,
+      status: "pending"
+      },
+    });
+    //สร้าง orderItem ของแต่ละสินค้า
+    const orderItems = cartItems.map((item) => ({
+      orderId: newOrder.id,
+      productId: item.productId,
+      quantity: item.quantity,
+      price: item.totalPrice || 0, // ใช้ราคาที่ถูกบันทึกใน cart
+    }));
+     // อัปเดต Cart ให้ isCheckedOut เป็น true
+     await prisma.cart.updateMany({
+      where: { userId, isCheckedOut: false },
+      data: { isCheckedOut: true },
+    });
+    await prisma.orderItem.createMany({
+      data: orderItems,
+    });
+    return res.status(201).json({ message: "Checkout successful", order: newOrder });
+  } catch (error) {
+    console.error("Checkout error:", error);
+    return res.status(500).json({ error: "Failed to checkout", details: error });
+  }
 }
