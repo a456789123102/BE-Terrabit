@@ -6,8 +6,10 @@ const prisma = new PrismaClient();
 export const createCart = async (req: Request, res: Response) => {
   console.log("Cart_create");
   try {
-    const userId = parseInt(req.params.userId, 10);
+    const userId = (req as any).user.id;
+    console.log("userID:"+userId)
     if (isNaN(userId)) {
+      
         return res.status(400).json({ message: "Invalid userId. It must be a number." });
       }
     const { productId, quantity, totalPrice } = req.body;
@@ -37,6 +39,7 @@ export const createCart = async (req: Request, res: Response) => {
 export const getAllCart =  async (req:Request, res:Response) => {
     console.log("Cart_getAll")
     try {
+      console.log("req.params:", req.params);
         const cartItems = await prisma.cart.findMany({});
         return res.status(200).json(cartItems)
     } catch (error) {
@@ -48,7 +51,7 @@ export const getAllCart =  async (req:Request, res:Response) => {
 export const getPersonalCart = async (req:Request, res:Response) =>{
     console.log("Cart_getPersonal")
     try {
-        const userId = parseInt(req.params.userId, 10);
+      const userId = (req as any).user.id;
         if (isNaN(userId)) {
             console.log("req.params:", req.params);
             return res.status(400).json({ message: "Invalid userId. It must be a number.",userId });
