@@ -58,15 +58,8 @@ export const getPersonalCart = async (req:Request, res:Response) =>{
         }
         const cartItems = await prisma.cart.findMany({
             where: { userId},
-            select: {
-              id: true,
-              userId: true,
-              productId: true,
-              quantity: true,
-              totalPrice: true,
-              isCheckedOut: true,
-              createdAt: true,
-              updatedAt: true,
+            include: {
+              product: true, // ดึงข้อมูลจากตาราง Product ที่สัมพันธ์กับ Cart
           },
         });
         return res.status(200).json(cartItems);
@@ -75,8 +68,12 @@ export const getPersonalCart = async (req:Request, res:Response) =>{
     }
 }
 
-//checkout
+//deleteCart
+export const deleteCart = (req:Request, res:Response) => {
 
+};
+
+//checkout
 export const checkoutCart = async (req:Request, res:Response) => {
   console.log("cart_checkout");
   try {
