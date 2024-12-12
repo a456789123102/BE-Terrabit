@@ -73,17 +73,19 @@ export const createProduct = async (req: Request, res: Response) => {
 export const findAllProducts = async (req: Request, res: Response) => {
   try {
     console.log("Product_findall");
-    // รับค่าคำค้นหาจาก query params
+
     const searchQuery = req.query.search as string | undefined;
     const categoryIds = req.query.category as string | string[] | undefined;
+    const page = Number(req.query.page) || 1;  // แปลง page เป็น Number หากไม่มีค่าให้ใช้เป็น 1
+    const sortBy = req.query.sortBy as string | undefined;  
+    const sortOrder = req.query.sortOrder === 'desc' ? 'desc' : 'asc'; 
+    const pageSize = 2; 
 
-    // สร้างตัวแปร where ที่จะใช้ในการค้นหา
-    const where: any = {}; // กำหนด where clause แบบ dynamic
+    const where: any = {}; 
 
-    // หากมีคำค้นหาในชื่อสินค้า
     if (searchQuery) {
       where.name = {
-        contains: searchQuery.toLowerCase(), // จัดการคำค้นหาด้วยการแปลงเป็นตัวพิมพ์เล็ก
+        contains: searchQuery.toLowerCase(), 
       };
     }
 
@@ -95,14 +97,18 @@ export const findAllProducts = async (req: Request, res: Response) => {
       where.ProductCategory = {
         some: {
           categoryId: {
-            in: categoryFilter, // กรองตาม category id ที่ส่งมา
+            in: categoryFilter, 
           },
         },
       };
     }
 
-    // ค้นหาสินค้าตามเงื่อนไขที่กำหนด
+    const offset = (page - 1) * pageSize;
+
     const products = await prisma.product.findMany({
+      skip: offset,  
+      take: pageSize, 
+      orderBy: sortBy ? { [sortBy]: sortOrder } : undefined,  
       where,
       include: {
         ProductCategory: {
@@ -112,16 +118,31 @@ export const findAllProducts = async (req: Request, res: Response) => {
         },
         Image: {
           where: {
-            name: "CoverImage", // กรองเฉพาะภาพที่มีชื่อว่า "Cover Image"
+            name: "CoverImage", 
           },
           select: {
-            imageUrl: true, // แสดงเฉพาะ url ของภาพ
+            imageUrl: true,
           },
         },
       },
     });
 
-    return res.status(200).json(products);
+    const totalProducts = await prisma.product.count({
+      where, 
+    });
+
+    const totalPages = Math.ceil(totalProducts / pageSize);
+
+    // ส่งข้อมูลสินค้าพร้อมกับข้อมูล pagination
+    return res.status(200).json({
+      products,
+      pagination: {
+        page,
+        pageSize,
+        totalProducts,
+        totalPages,
+      },
+    });
   } catch (error) {
     console.error(error);
     return res
@@ -129,6 +150,8 @@ export const findAllProducts = async (req: Request, res: Response) => {
       .json({ message: "Error while getting products", error });
   }
 };
+
+
 //getAllProductsByCatIds
 export const findAllProductsByCatIds = async (req: Request, res: Response) => {
   try {
