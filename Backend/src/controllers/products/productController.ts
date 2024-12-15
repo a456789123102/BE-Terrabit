@@ -79,8 +79,8 @@ export const findAllProducts = async (req: Request, res: Response) => {
     const page = Number(req.query.page) || 1;  // แปลง page เป็น Number หากไม่มีค่าให้ใช้เป็น 1
     const sortBy = req.query.sortBy as string | undefined;  
     const sortOrder = req.query.sortOrder === 'desc' ? 'desc' : 'asc'; 
-    const pageSize = 2; 
-
+    const pageSize = req.query.pageSize ? Number(req.query.pageSize) : undefined; 
+console.log(`pagesize in BE: ${pageSize}`)
     const where: any = {}; 
 
     if (searchQuery) {
@@ -103,7 +103,7 @@ export const findAllProducts = async (req: Request, res: Response) => {
       };
     }
 
-    const offset = (page - 1) * pageSize;
+    const offset = pageSize ? (page - 1) * pageSize : undefined;
 
     const products = await prisma.product.findMany({
       skip: offset,  
@@ -131,7 +131,7 @@ export const findAllProducts = async (req: Request, res: Response) => {
       where, 
     });
 
-    const totalPages = Math.ceil(totalProducts / pageSize);
+    const totalPages = pageSize ? Math.ceil(totalProducts / pageSize) : 1;
 
     // ส่งข้อมูลสินค้าพร้อมกับข้อมูล pagination
     return res.status(200).json({
