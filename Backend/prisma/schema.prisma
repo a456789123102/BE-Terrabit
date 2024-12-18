@@ -39,7 +39,6 @@ model Product {
   discount    Float?
   finalPrice  Float?
   quantity    Int
-  image       String?
   description String
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
