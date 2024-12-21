@@ -101,7 +101,10 @@ export const getPersonalCart = async (req: Request, res: Response) => {
         .json({ message: "Invalid userId. It must be a number.", userId });
     }
     const cartItems = await prisma.cart.findMany({
-      where: { userId },
+      where: { userId,
+        isCheckedOut: false
+       },
+      
       include: {
         product: true, // ดึงข้อมูลจากตาราง Product ที่สัมพันธ์กับ Cart
       },
@@ -114,7 +117,7 @@ export const getPersonalCart = async (req: Request, res: Response) => {
   }
 };
 
-//deleteCart
+//deleteCartItems
 export const deleteCart = async (req: Request, res: Response) => {
   console.log("cart_delete");
   try {

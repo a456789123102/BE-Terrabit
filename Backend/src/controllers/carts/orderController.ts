@@ -29,3 +29,19 @@ export const updateOrderStatus = async (req: Request, res: Response) => {
     }
 };
 
+//get all orders for admin
+
+export const getAllOrders = async (req: Request, res: Response) => {
+  console.log("order_getall");
+  try {
+    const orders = await prisma.order.findMany({
+      include: { items: true },
+    });
+    return res.status(200).json({ message: "success", orders });
+  } catch (error) {
+    console.error("Error fetching orders:", error);
+    return res.status(500).json({ message: "Failed to fetch orders", error });
+  }
+};
+
+//get own orders
