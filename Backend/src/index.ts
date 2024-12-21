@@ -6,9 +6,10 @@ import userRoute from "./routes/users/userRoute";
 import categoryRoute from "./routes/product/categoryRoute";
 import productRoute from "./routes/product/productRoute";
 import reviewRoute from "./routes/product/reviewRoute";
-import imageRoute from "./routes/product/imageRoute";
+import productImageRoute from "./routes/product/productImageRoute";
 import careerRoute from "./routes/career/careerRoute";
 import cartRoute from "./routes/cart/cartRoute"
+import slipImageRoute from "./routes/cart/slipImageRoute";
 import dotenv from 'dotenv';
 
 
@@ -26,8 +27,9 @@ app.use(prefix +"/user",userRoute);
 app.use(prefix +"/category",categoryRoute);
 app.use(prefix +"/product", productRoute);
 app.use(prefix +"/reviews", reviewRoute);
-app.use(prefix+ "/image",imageRoute);
+app.use(prefix+ "/productImage",productImageRoute);
 app.use(prefix+ "/career",careerRoute);
 app.use(prefix+ "/cart",cartRoute);
+app.use(prefix+ "/slipImage",slipImageRoute);
 const port = process.env.PORT || 8001;
 app.listen(port, () => console.log(`Listening on port ${port}`));

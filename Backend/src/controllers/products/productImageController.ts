@@ -7,6 +7,7 @@ const prisma = new PrismaClient();
 export const uploadProductImage = async (req: Request, res: Response) => {
   try {
       const { productId } = req.params;
+      const { name } = req.body;
       if (!req.file) {
           return res.status(400).json({ message: "File is required." });
       }
@@ -15,7 +16,7 @@ export const uploadProductImage = async (req: Request, res: Response) => {
 
       const newImage = await prisma.productImage.create({
           data: {
-              name: req.file.originalname,
+              name,
               imageUrl,
               productId: Number(productId),
           },
