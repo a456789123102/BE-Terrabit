@@ -113,6 +113,7 @@ model Order {
   userId     Int
   totalPrice Float?
   status     String   @default("pending")
+  slipUrl    String?
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 

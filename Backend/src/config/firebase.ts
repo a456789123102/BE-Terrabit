@@ -1,4 +1,7 @@
-// src/config/firebase.ts
+
+import { initializeApp } from "firebase/app";
+import { getStorage } from "firebase/storage";
+
 const firebaseConfig = {
     apiKey: "AIzaSyBtwIkCzEMtqZC0aoXkfrgWYMDUEv1eeaQ",
     authDomain: "terrabit-5d129.firebaseapp.com",
@@ -9,4 +12,5 @@ const firebaseConfig = {
     measurementId: "G-VSD5P41F0R"
   };
   
-  export default firebaseConfig;
+  const firebaseApp = initializeApp(firebaseConfig);
+  export const storage = getStorage(firebaseApp);
