@@ -10,6 +10,7 @@ import productImageRoute from "./routes/product/productImageRoute";
 import careerRoute from "./routes/career/careerRoute";
 import cartRoute from "./routes/cart/cartRoute"
 import slipImageRoute from "./routes/cart/slipImageRoute";
+import orderRoute from "./routes/cart/orderRoute";
 import dotenv from 'dotenv';
 
 
@@ -31,5 +32,6 @@ app.use(prefix+ "/productImage",productImageRoute);
 app.use(prefix+ "/career",careerRoute);
 app.use(prefix+ "/cart",cartRoute);
 app.use(prefix+ "/slipImage",slipImageRoute);
+app.use(prefix+ "/order",orderRoute);
 const port = process.env.PORT || 8001;
 app.listen(port, () => console.log(`Listening on port ${port}`));
