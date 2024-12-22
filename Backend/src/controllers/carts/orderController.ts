@@ -45,3 +45,16 @@ export const getAllOrders = async (req: Request, res: Response) => {
 };
 
 //get own orders
+
+export const getmyOrder = async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).user.id;
+    const orders = await prisma.order.findMany({
+      where: { userId },
+      include: { items: true },
+    });
+    return res.status(200).json({ message:"Success",orders});
+  } catch (error) {
+    return res.status(500).json({ message: "Failed to get orders", error });
+  }
+}
