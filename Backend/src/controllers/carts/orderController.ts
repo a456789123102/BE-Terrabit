@@ -37,7 +37,7 @@ export const getAllOrders = async (req: Request, res: Response) => {
     const orders = await prisma.order.findMany({
       include: { items: true },
     });
-    return res.status(200).json({ message: "success", orders });
+    return res.status(200).json({orders});
   } catch (error) {
     console.error("Error fetching orders:", error);
     return res.status(500).json({ message: "Failed to fetch orders", error });
@@ -47,13 +47,18 @@ export const getAllOrders = async (req: Request, res: Response) => {
 //get own orders
 
 export const getmyOrder = async (req: Request, res: Response) => {
+  console.log("order_getMine");
   try {
     const userId = (req as any).user.id;
+    const status = req.params.status;
     const orders = await prisma.order.findMany({
-      where: { userId },
+      where: { 
+        userId,
+        status,
+       },
       include: { items: true },
     });
-    return res.status(200).json({ message:"Success",orders});
+    return res.status(200).json(orders);
   } catch (error) {
     return res.status(500).json({ message: "Failed to get orders", error });
   }
