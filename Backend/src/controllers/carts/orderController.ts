@@ -34,10 +34,15 @@ export const updateOrderStatus = async (req: Request, res: Response) => {
 export const getAllOrders = async (req: Request, res: Response) => {
   console.log("order_getall");
   try {
-    const orders = await prisma.order.findMany({
-      include: { items: true },
-    });
-    return res.status(200).json({orders});
+    const {status} = req.body;
+    console.log(`status: ${status}`);
+const statusFilter = Array.isArray(status) && status.length > 0 ? { status: { in: status } } : {};
+
+const orders = await prisma.order.findMany({
+  where: statusFilter, // ใช้เงื่อนไขสำหรับ status
+  include: { items: true }, // ดึงข้อมูล items ที่เกี่ยวข้อง
+});
+return res.status(200).json({ orders });
   } catch (error) {
     console.error("Error fetching orders:", error);
     return res.status(500).json({ message: "Failed to fetch orders", error });
@@ -51,15 +56,25 @@ export const getmyOrder = async (req: Request, res: Response) => {
   try {
     const userId = (req as any).user.id;
     const status = req.params.status;
+    console.log(`status:${status}`);
+
+    const validStatuses = ["pending", "confirmed", "cancelled"];
+    if (!validStatuses.includes(status)) {
+      return res.status(400).json({ message: "Invalid status. Valid statuses are: pending, confirmed, cancelled." });
+    }
+
     const orders = await prisma.order.findMany({
       where: { 
         userId,
         status,
-       },
+      },
       include: { items: true },
     });
+
+    // ส่งข้อมูล `orders` โดยตรง
     return res.status(200).json(orders);
   } catch (error) {
+    console.error("Error in getmyOrder:", error);
     return res.status(500).json({ message: "Failed to get orders", error });
   }
-}
+};
