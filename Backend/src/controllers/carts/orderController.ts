@@ -34,9 +34,11 @@ export const updateOrderStatus = async (req: Request, res: Response) => {
 export const getAllOrders = async (req: Request, res: Response) => {
   console.log("order_getall");
   try {
-    const {status} = req.body;
+    const {status} = req.query;
+    
     console.log(`status: ${status}`);
-const statusFilter = Array.isArray(status) && status.length > 0 ? { status: { in: status } } : {};
+    const statuses = Array.isArray(status)? status: status? [status]: [];
+    const statusFilter = statuses.length > 0 ? { status: { in: statuses as string[] } } : {};
 
 const orders = await prisma.order.findMany({
   where: statusFilter, // ใช้เงื่อนไขสำหรับ status
