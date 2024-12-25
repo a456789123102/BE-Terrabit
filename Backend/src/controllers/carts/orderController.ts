@@ -34,22 +34,31 @@ export const updateOrderStatus = async (req: Request, res: Response) => {
 export const getAllOrders = async (req: Request, res: Response) => {
   console.log("order_getall");
   try {
-    const {status} = req.query;
-    
-    console.log(`status: ${status}`);
-    const statuses = Array.isArray(status)? status: status? [status]: [];
-    const statusFilter = statuses.length > 0 ? { status: { in: statuses as string[] } } : {};
+    // ดึง status จาก query string
+    const { status } = req.query;
 
-const orders = await prisma.order.findMany({
-  where: statusFilter, // ใช้เงื่อนไขสำหรับ status
-  include: { items: true }, // ดึงข้อมูล items ที่เกี่ยวข้อง
-});
-return res.status(200).json({ orders });
+    console.log(`status: ${status}`);
+
+    // ตรวจสอบและแปลง status เป็น array
+    const statuses = typeof status === "string" ? status.split(",") : [];
+
+    // สร้าง filter สำหรับ Prisma
+    const statusFilter = statuses.length > 0 ? { status: { in: statuses } } : {};
+
+    // ดึงคำสั่งซื้อจากฐานข้อมูล
+    const orders = await prisma.order.findMany({
+      where: statusFilter, // ใช้เงื่อนไขสำหรับ status
+      include: { items: true }, // ดึงข้อมูล items ที่เกี่ยวข้อง
+    });
+
+    // ส่งข้อมูลคำสั่งซื้อกลับ
+    return res.status(200).json({ orders });
   } catch (error) {
     console.error("Error fetching orders:", error);
     return res.status(500).json({ message: "Failed to fetch orders", error });
   }
 };
+
 
 //get own orders
 
