@@ -9,7 +9,7 @@ export const updateOrderStatus = async (req: Request, res: Response) => {
         const { orderId } = req.params; 
         const { status } = req.body;  
 
-        const validStatuses = ["pending", "confirmed", "cancelled"];
+        const validStatuses = ["awaiting_slip_upload","awaiting_confirmation", "order_approved", "order_cancelled"];
         if (!validStatuses.includes(status)) {
           return res.status(400).json({ message: "Invalid status. Valid statuses are: pending, confirmed, cancelled." });
         }
@@ -69,7 +69,7 @@ export const getmyOrder = async (req: Request, res: Response) => {
     const status = req.params.status;
     console.log(`status:${status}`);
 
-    const validStatuses = ["pending", "confirmed", "cancelled"];
+    const validStatuses = ["awaiting_slip_upload","awaiting_confirmation", "order_approved", "order_cancelled"];
     if (!validStatuses.includes(status)) {
       return res.status(400).json({ message: "Invalid status. Valid statuses are: pending, confirmed, cancelled." });
     }

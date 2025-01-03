@@ -94,14 +94,14 @@ model ProductImage {
 }
 
 model Cart {
-  id         Int      @id @default(autoincrement())
-  userId     Int
-  productId  Int
-  quantity   Int      @default(1)
-  totalPrice Float?
-  isCheckedOut  Boolean  @default(false)
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  id           Int      @id @default(autoincrement())
+  userId       Int
+  productId    Int
+  quantity     Int      @default(1)
+  totalPrice   Float?
+  isCheckedOut Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
   // Relation field
   user    User    @relation(fields: [userId], references: [id])

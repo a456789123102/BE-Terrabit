@@ -168,7 +168,7 @@ export const checkout = async (req: Request, res: Response) => {
 
     // สร้าง order ใหม่
     const newOrder = await prisma.order.create({
-      data: { userId, totalPrice, status: "pending" },
+      data: { userId, totalPrice},
     });
     // สร้าง orderItems จาก cartItems
     const orderItems = cartItems.map((item) => ({
