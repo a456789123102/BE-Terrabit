@@ -1,11 +1,10 @@
 import { Router } from "express";
-import multer from "multer";
-import { uploadProductImage } from "../../controllers/products/productImageController";
 import { verifyAdmin } from "../../middlewares/verify";
+import { deleteProductImage } from "../../controllers/products/productImageController";
 
 const router = Router();
-const upload = multer(); // ใช้สำหรับจัดการการอัปโหลดไฟล์
 
-router.post("/:productId/upload", verifyAdmin, upload.single("image"), uploadProductImage);
+// Route สำหรับลบรูปภาพ
+router.delete("delete/:imageId", verifyAdmin, deleteProductImage);
 
 export default router;

@@ -1,3 +1,4 @@
+import multer from "multer";
 import {
     createProduct,
     findAllProducts,
@@ -9,9 +10,11 @@ import { verifyUser, verifyAdmin } from "../../middlewares/verify";
 import {Router} from 'express';
 
 const router = Router();
-router.post('/create',verifyAdmin, createProduct);
+const upload = multer();
+
+router.post('/create',verifyAdmin,upload.any(), createProduct);
 router.get('/:id', getProductById);
-router.patch('/:id/edit',verifyAdmin, editProduct);
+router.patch('/:id/edit',verifyAdmin,upload.any(), editProduct);
 router.get('/', findAllProducts);
 router.get('/category/:id', findAllProductsByCatIds);
 export default router;
