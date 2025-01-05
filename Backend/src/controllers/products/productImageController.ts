@@ -17,13 +17,29 @@ export const handleProductImages = async (
 
     const uploadedImages = [];
     for (const file of files) {
+      // กำหนดชื่อไฟล์ตามฟิลด์
+      let imageName: string;
+      switch (file.fieldname) {
+        case "CoverImage":
+          imageName = "CoverImage";
+          break;
+        case "ImageDetail1":
+          imageName = "ImageDetail1";
+          break;
+        case "ImageDetail2":
+          imageName = "ImageDetail2";
+          break;
+        default:
+          imageName = "Unknown"; // หรือจัดการกรณีอื่นๆ ตามต้องการ
+      }
+
       // อัปโหลดภาพไปยัง Firebase
       const imageUrl = await uploadProductImageToFirebase(file);
 
       // บันทึกภาพในฐานข้อมูล
       const newImage = await prisma.productImage.create({
         data: {
-          name: file.originalname,
+          name: imageName, // ใช้ชื่อที่กำหนดเอง
           imageUrl,
           productId,
         },
@@ -38,6 +54,7 @@ export const handleProductImages = async (
     throw new Error("Failed to upload images.");
   }
 };
+
 
 
 export const deleteProductImage = async ( req: Request, res:Response) =>{

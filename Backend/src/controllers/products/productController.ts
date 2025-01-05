@@ -12,80 +12,6 @@ type ProductImage = {
   updatedAt: Date;
 };
 
-// Create product
-// export const createProduct = async (req: Request, res: Response) => {
-//   try {
-//     console.log("Product_create");
-
-//     const { name, price, discount, categories, quantity, description } =
-//       req.body;
-//     const files = req.files as Express.Multer.File[];
-//     console.log("req.body:", req.body);
-//     console.log("req.files:", req.files);
-//     if (
-//       !name?.trim() ||
-//       price === undefined ||
-//       !Array.isArray(categories) ||
-//       categories.length === 0 ||
-//       quantity === undefined ||
-//       !description?.trim()
-//     ) {
-//       return res.status(400).json({ message: "All fields are required" });
-//     }
-
-//     const existingProduct = await prisma.product.findUnique({
-//       where: { name },
-//     });
-//     if (existingProduct) {
-//       return res.status(400).json({ message: "Product name already exists" });
-//     }
-
-//     const validCategories = await prisma.category.findMany({
-//       where: { id: { in: categories } },
-//     });
-//     if (validCategories.length !== categories.length) {
-//       return res
-//         .status(400)
-//         .json({ message: "One or more categories are invalid" });
-//     }
-
-//     let finalPrice = price;
-//     if (discount && discount > 0) {
-//       finalPrice = price * (1 - discount);
-//     }
-
-//     const product = await prisma.product.create({
-//       data: {
-//         name,
-//         price,
-//         finalPrice,
-//         discount,
-//         quantity,
-//         description,
-//       },
-//     });
-
-//     const productCategories = categories.map((categoryId: number) => ({
-//       productId: product.id,
-//       categoryId,
-//     }));
-//     await prisma.productCategory.createMany({ data: productCategories });
-
-//     let uploadedImages: ProductImage[] = [];
-//     if (files && files.length > 0) {
-//       uploadedImages = await handleProductImages(files, product.id);
-//     }
-
-//     return res.status(200).json({
-//       message: "Product created successfully",
-//       product,
-//       images: uploadedImages,
-//     });
-//   } catch (error) {
-//     console.error("Error creating product:", error);
-//     return res.status(500).json({ message: "Error creating product", error });
-//   }
-// };
 
 export const createProduct = async (req: Request, res: Response) => {
   try {
@@ -224,6 +150,7 @@ export const editProduct = async (req: Request, res: Response) => {
       uploadedImages = await handleProductImages(files, productId);
     }
 
+
     await prisma.productCategory.deleteMany({ where: { productId } });
     const productCategories = categories.map((categoryId: number) => ({
       productId,
@@ -328,7 +255,7 @@ export const findAllProducts = async (req: Request, res: Response) => {
       .json({ message: "Error while getting products", error });
   }
 };
-
+///////////////////////////////////////////////////////////////////////////////////////////////////////
 //getAllProductsByCatIds
 export const findAllProductsByCatIds = async (req: Request, res: Response) => {
   try {
