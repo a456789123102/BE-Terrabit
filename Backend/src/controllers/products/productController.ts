@@ -1,28 +1,12 @@
 import { Request, Response } from "express";
 import { PrismaClient } from "@prisma/client";
-import { handleProductImages } from "./productImageController";
 
 const prisma = new PrismaClient();
-type ProductImage = {
-  id: number;
-  name: string;
-  imageUrl: string;
-  productId: number;
-  createdAt: Date;
-  updatedAt: Date;
-};
 
-
+//create
 export const createProduct = async (req: Request, res: Response) => {
   try {
-    console.log("Product_create");
-
-    const { name, price, discount, categories, quantity, description } =
-      req.body;
-
-    console.log("req.body:", req.body);
-    console.log("req.files:", req.files);
-
+    const { name, price, discount, categories, quantity, description } = req.body;
     // ตรวจสอบและแปลงข้อมูล
     const parsedName = name?.replace(/"/g, "").trim();
     const parsedCategories = Array.isArray(categories)
@@ -33,7 +17,6 @@ export const createProduct = async (req: Request, res: Response) => {
     const parsedQuantity = parseInt(quantity);
     const parsedDescription = description?.replace(/"/g, "").trim();
 
-    // ตรวจสอบว่าข้อมูลครบถ้วน
     if (
       !parsedName ||
       isNaN(parsedPrice) ||
@@ -64,10 +47,7 @@ export const createProduct = async (req: Request, res: Response) => {
     }
 
     // คำนวณ finalPrice
-    let finalPrice = parsedPrice;
-    if (parsedDiscount && parsedDiscount > 0) {
-      finalPrice = parsedPrice * (1 - parsedDiscount);
-    }
+    const finalPrice = parsedDiscount > 0 ? parsedPrice * (1 - parsedDiscount) : parsedPrice;
 
     // สร้างสินค้าในฐานข้อมูล
     const product = await prisma.product.create({
@@ -88,13 +68,9 @@ export const createProduct = async (req: Request, res: Response) => {
     }));
     await prisma.productCategory.createMany({ data: productCategories });
 
-    // ตรวจสอบว่ามีไฟล์หรือไม่
-    const uploadedImages = await handleProductImages(req.files as Express.Multer.File[], product.id);
-
     return res.status(200).json({
       message: "Product created successfully",
       product,
-      images: uploadedImages,
     });
   } catch (error) {
     console.error("Error creating product:", error);
@@ -121,8 +97,6 @@ export const editProduct = async (req: Request, res: Response) => {
       const parsedDiscount = parseFloat(discount);
       const parsedQuantity = parseInt(quantity);
       const parsedDescription = description?.replace(/"/g, "").trim();
-    const files = req.files as Express.Multer.File[];
-
     const existingProduct = await prisma.product.findUnique({
       where: { id: productId },
     });
@@ -145,11 +119,6 @@ export const editProduct = async (req: Request, res: Response) => {
       data: { name, price, discount, finalPrice, quantity, description },
     });
 
-    let uploadedImages: ProductImage[] = [];
-    if (files && files.length > 0) {
-      uploadedImages = await handleProductImages(files, productId);
-    }
-
 
     await prisma.productCategory.deleteMany({ where: { productId } });
     const productCategories = categories.map((categoryId: number) => ({
@@ -161,7 +130,6 @@ export const editProduct = async (req: Request, res: Response) => {
     return res.status(200).json({
       message: "Product updated successfully",
       product: updatedProduct,
-      images: uploadedImages,
     });
   } catch (error) {
     console.error("Error updating product:", error);

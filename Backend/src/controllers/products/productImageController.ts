@@ -1,59 +1,83 @@
-import { uploadProductImageToFirebase,deleteImageFromFirebase } from "../../utils/ProductImage";
 import { PrismaClient } from "@prisma/client";
 import { Request, Response } from "express";
+import { uploadProductImageToFirebase,deleteImageFromFirebase } from "../../utils/ProductImage";
 
 const prisma = new PrismaClient();
 
-
-export const handleProductImages = async (
-  files: Express.Multer.File[] | undefined,
-  productId: number
-) => {
+export const uploadSingleProductImage = async (req: Request, res: Response) => {
   try {
-    if (!files || files.length === 0) {
-      // ไม่มีไฟล์ ให้คืนค่า array ว่าง
-      return [];
+    const { productId } = req.params;
+    if (!productId) {
+      return res.status(400).json({ message: "Product ID is required." });
     }
 
-    const uploadedImages = [];
-    for (const file of files) {
-      // กำหนดชื่อไฟล์ตามฟิลด์
-      let imageName: string;
-      switch (file.fieldname) {
-        case "CoverImage":
-          imageName = "CoverImage";
-          break;
-        case "ImageDetail1":
-          imageName = "ImageDetail1";
-          break;
-        case "ImageDetail2":
-          imageName = "ImageDetail2";
-          break;
-        default:
-          imageName = "Unknown"; // หรือจัดการกรณีอื่นๆ ตามต้องการ
+    const files = req.files as Record<string, Express.Multer.File[]>;
+    if (!files || Object.keys(files).length === 0) {
+      return res.status(400).json({ message: "No file uploaded." });
+    }
+
+    const validFieldNames = ["CoverImage", "DetailImage1", "DetailImage2"];
+    let uploadedImage;
+
+    for (const fieldName of validFieldNames) {
+      const fileArray = files[fieldName]; // ตรวจสอบไฟล์ในฟิลด์นั้น
+      if (fileArray && fileArray.length > 0) {
+        const file = fileArray[0]; // ใช้ไฟล์แรก (เนื่องจาก maxCount = 1)
+
+        // ตรวจสอบว่า Product มีอยู่ในระบบ
+        const product = await prisma.product.findUnique({
+          where: { id: Number(productId) },
+        });
+        if (!product) {
+          return res.status(404).json({ message: "Product not found." });
+        }
+
+        // ตรวจสอบว่าภาพมีอยู่แล้วหรือไม่
+        const isExistingImage = await prisma.productImage.findMany({
+          where: {
+            productId: Number(productId),
+            name: fieldName,
+          },
+        });
+        if (isExistingImage.length > 0) {
+          return res.status(400).json({
+            message: `Image with name "${fieldName}" already exists for this product.`,
+          });
+        }
+
+        // อัปโหลดไฟล์ไปยัง Firebase
+        const imageUrl = await uploadProductImageToFirebase(file);
+
+        // บันทึกข้อมูลลงฐานข้อมูล
+        uploadedImage = await prisma.productImage.create({
+          data: {
+            name: fieldName,
+            imageUrl,
+            productId: Number(productId),
+          },
+        });
+
+        break; // อัปโหลดเพียง 1 รูปต่อคำขอ
       }
-
-      // อัปโหลดภาพไปยัง Firebase
-      const imageUrl = await uploadProductImageToFirebase(file);
-
-      // บันทึกภาพในฐานข้อมูล
-      const newImage = await prisma.productImage.create({
-        data: {
-          name: imageName, // ใช้ชื่อที่กำหนดเอง
-          imageUrl,
-          productId,
-        },
-      });
-
-      uploadedImages.push(newImage);
     }
 
-    return uploadedImages;
+    // หากไม่มีฟิลด์ใดตรงกับ validFieldNames
+    if (!uploadedImage) {
+      return res.status(400).json({
+        message: `File field must be one of: ${validFieldNames.join(", ")}`,
+      });
+    }
+
+    return res.status(200).json({
+      message: "Image uploaded successfully.",
+      image: uploadedImage,
+    });
   } catch (error) {
-    console.error("Error uploading images:", error);
-    throw new Error("Failed to upload images.");
+    console.error("Error uploading image:", error);
+    return res.status(500).json({ message: "Error uploading image.", error });
   }
 };
+
 
 
 
