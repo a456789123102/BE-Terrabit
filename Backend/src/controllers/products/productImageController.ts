@@ -91,7 +91,7 @@ try {
   if (!existingImage) {
     return res.status(404).json({ message: "Image not found." });
   }
-  await deleteImageFromFirebase(existingImage.imageUrl);
+  //await deleteImageFromFirebase(existingImage.imageUrl); penging na
   await prisma.productImage.delete({
     where: { id: Number(imageId) },
   });

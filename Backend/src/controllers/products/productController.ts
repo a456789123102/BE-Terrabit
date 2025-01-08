@@ -89,14 +89,7 @@ export const editProduct = async (req: Request, res: Response) => {
     const productId = parseInt(id);
     const { name, price, discount, categories, quantity, description } =
       req.body;
-      const parsedName = name?.replace(/"/g, "").trim();
-      const parsedCategories = Array.isArray(categories)
-        ? categories
-        : JSON.parse(categories || "[]");
-      const parsedPrice = parseFloat(price);
-      const parsedDiscount = parseFloat(discount);
-      const parsedQuantity = parseInt(quantity);
-      const parsedDescription = description?.replace(/"/g, "").trim();
+
     const existingProduct = await prisma.product.findUnique({
       where: { id: productId },
     });
@@ -121,6 +114,7 @@ export const editProduct = async (req: Request, res: Response) => {
 
 
     await prisma.productCategory.deleteMany({ where: { productId } });
+    
     const productCategories = categories.map((categoryId: number) => ({
       productId,
       categoryId,
@@ -223,6 +217,7 @@ export const findAllProducts = async (req: Request, res: Response) => {
       .json({ message: "Error while getting products", error });
   }
 };
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////////
 //getAllProductsByCatIds
 export const findAllProductsByCatIds = async (req: Request, res: Response) => {
@@ -304,86 +299,3 @@ export const getProductById = async (req: Request, res: Response) => {
   }
 };
 
-// // edit product
-// export const editProduct = async (req: Request, res: Response) => {
-//   try {
-//     console.log("Product_edit");
-//     const { id } = req.params;
-//     const productId = parseInt(id);
-//     const { name, price, discount, categories, quantity, description } =
-//       req.body;
-//     const files = req.files as Express.Multer.File[];
-//     // ตรวจสอบว่ามีสินค้าหรือไม่
-//     const existingProduct = await prisma.product.findUnique({
-//       where: { id: productId },
-//     });
-//     if (!existingProduct) {
-//       return res.status(404).json({ message: "Product not found" });
-//     }
-
-//     // ตรวจสอบว่าชื่อสินค้าที่แก้ไขไม่ซ้ำกับสินค้าตัวอื่น
-//     if (name !== existingProduct.name) {
-//       const existingProductName = await prisma.product.findUnique({
-//         where: { name },
-//       });
-//       if (
-//         existingProductName &&
-//         existingProductName.id !== existingProduct.id
-//       ) {
-//         return res.status(400).json({ message: "Product name already exists" });
-//       }
-//     }
-//     let finalPrice = price;
-
-//     if (discount && discount > 0) {
-//       finalPrice = price * (1 - discount);
-//     }
-
-//     // อัปเดตข้อมูลสินค้า
-//     const updatedProduct = await prisma.product.update({
-//       where: { id: productId },
-//       data: { name, price, discount, finalPrice, quantity, description },
-//     });
-
-//     let uploadedImages = [];
-//     if (files && files.length > 0) {
-//       uploadedImages = await handleProductImages(files, productId);
-//     }
-
-//     // ลบความสัมพันธ์ category ทั้งหมดที่มีอยู่ก่อน
-//     await prisma.productCategory.deleteMany({
-//       where: { productId: productId },
-//     });
-
-//     // ตรวจสอบ category ใหม่ว่ามีอยู่ในระบบจริงหรือไม่
-//     const validCategories = await prisma.category.findMany({
-//       where: { id: { in: categories } },
-//     });
-
-//     if (validCategories.length !== categories.length) {
-//       return res
-//         .status(400)
-//         .json({ message: "One or more categories are invalid" });
-//     }
-
-//     // สร้างความสัมพันธ์ใหม่ระหว่าง product กับ categories
-//     const productCategories = categories.map((categoryId: number) => ({
-//       productId: productId,
-//       categoryId: categoryId,
-//     }));
-
-//     await prisma.productCategory.createMany({
-//       data: productCategories,
-//     });
-
-//     // ส่งข้อมูลที่แก้ไขเสร็จแล้วกลับไปยัง client
-//     return res.status(200).json({
-//       message: "Product updated successfully",
-//       product: updatedProduct,
-//       images: uploadedImages // ส่งข้อมูล product ที่อัปเดตแล้วกลับไป
-//     });
-//   } catch (error) {
-//     console.error(error);
-//     return res.status(500).json({ message: "Error updating product", error });
-//   }
-// };

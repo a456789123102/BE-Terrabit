@@ -78,7 +78,7 @@ model Addresses {
   updatedAt DateTime @updatedAt
 
   // Relation field
-  user User @relation(fields: [userId], references: [id])
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model ProductImage {
@@ -89,7 +89,7 @@ model ProductImage {
   updatedAt DateTime @updatedAt
 
   // Relation field
-  product   Product @relation(fields: [productId], references: [id])
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
   productId Int
 }
 
@@ -104,7 +104,7 @@ model Cart {
   updatedAt    DateTime @updatedAt
 
   // Relation field
-  user    User    @relation(fields: [userId], references: [id])
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
   product Product @relation(fields: [productId], references: [id])
 }
 
@@ -117,7 +117,7 @@ model Order {
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
-  user  User        @relation(fields: [userId], references: [id])
+  user  User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   items OrderItem[]
 }
 
@@ -130,7 +130,7 @@ model OrderItem {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  order   Order   @relation(fields: [orderId], references: [id])
+  order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
   product Product @relation(fields: [productId], references: [id])
 }
 
@@ -143,8 +143,8 @@ model Review {
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now())
 
-  product Product @relation(fields: [productId], references: [id])
-  user    User    @relation(fields: [userId], references: [id])
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([productId, userId])
 }
@@ -158,7 +158,7 @@ model Thread {
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
-  user      User     @relation(fields: [userId], references: [id])
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   category  Category @relation(fields: [categoryId], references: [id])
   viewCount Int      @default(0)
   replies   Reply[]
@@ -173,8 +173,8 @@ model Reply {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  user   User   @relation(fields: [userId], references: [id])
-  thread Thread @relation(fields: [threadId], references: [id])
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  thread Thread @relation(fields: [threadId], references: [id], onDelete: Cascade)
   Like   Like[]
 }
 
@@ -185,9 +185,9 @@ model Like {
   replyId   Int?
   createdAt DateTime @default(now())
 
-  user   User    @relation(fields: [userId], references: [id])
-  thread Thread? @relation(fields: [threadId], references: [id])
-  reply  Reply?  @relation(fields: [replyId], references: [id])
+  user   User    @relation(fields: [userId], references: [id], onDelete: Restrict)
+  thread Thread? @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  reply  Reply?  @relation(fields: [replyId], references: [id], onDelete: Restrict)
 }
 
 model Announcement {
@@ -199,7 +199,7 @@ model Announcement {
   updatedAt DateTime @updatedAt
   userId    Int
 
-  User User @relation(fields: [userId], references: [id])
+  User User @relation(fields: [userId], references: [id], onDelete: Restrict)
 }
 
 model Career {
