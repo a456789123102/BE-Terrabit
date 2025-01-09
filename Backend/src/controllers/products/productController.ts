@@ -13,7 +13,7 @@ export const createProduct = async (req: Request, res: Response) => {
       ? categories
       : JSON.parse(categories || "[]");
     const parsedPrice = parseFloat(price);
-    const parsedDiscount = parseFloat(discount);
+    const parsedDiscount = parseFloat(discount)/100;
     const parsedQuantity = parseInt(quantity);
     const parsedDescription = description?.replace(/"/g, "").trim();
 
@@ -106,7 +106,7 @@ export const editProduct = async (req: Request, res: Response) => {
         .json({ message: "One or more categories are invalid" });
     }
 
-    const finalPrice = discount ? price * (1 - discount) : price;
+    const finalPrice = discount ? price * (1 - (discount/100)) : price;
     const updatedProduct = await prisma.product.update({
       where: { id: productId },
       data: { name, price, discount, finalPrice, quantity, description },
@@ -299,3 +299,62 @@ export const getProductById = async (req: Request, res: Response) => {
   }
 };
 
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+//getAllRelatedProducts
+export const getRelatedProducts = async (req:Request, res:Response) => {
+  try {
+    console.log("PRODUCTS_GETRELATED")
+    const productId = parseInt(req.params.productId);
+    const categoryIds = req.query.category as string | string[] | undefined;
+    const name = req.query.name as string | undefined;
+    if(productId === undefined || categoryIds === undefined || name === undefined){
+      return res.status(400).json({ message: "Invalid parameters" });
+    }
+    const categoryIdsArray = Array.isArray(categoryIds)
+    ? categoryIds.map((id) => parseInt(id))
+    : [parseInt(categoryIds)];
+
+    const products = await prisma.product.findMany({
+      where: {
+        id: {
+          not: productId,
+        },
+        AND: [
+          {
+            ProductCategory: {
+              some: {
+                categoryId: {
+                  in: categoryIdsArray,
+                },
+              },
+            },
+          },
+        ],
+      },
+      take: 20, // ดึงข้อมูลมากกว่า 5 เพื่อตรวจสอบเพิ่มเติม
+    });
+    
+    const relatedProducts = products
+      .map(product => {
+        const matchScore = product.name.includes(name) ? 1 : 0; // คะแนนความคล้ายของชื่อ
+        const categoryMatchCount = 0//product.ProductCategory.filter((cat) =>
+          //categoryIdsArray.includes(cat.categoryId)
+      //  ).length; 
+        return {
+          ...product,
+          matchScore: matchScore + categoryMatchCount,
+        };
+      })
+      .sort((a, b) => b.matchScore - a.matchScore) // เรียงลำดับคะแนนจากมากไปน้อย
+      .slice(0, 5); // จำกัดผลลัพธ์ที่ 5 รายการ
+    
+    
+    return res.status(200).json({ relatedProducts });
+    
+  } catch (error) {
+    console.error("Error fetching related products:", error);
+    return res
+      .status(500)
+      .json({ message: "An error occurred while fetching related products" });
+  }
+}

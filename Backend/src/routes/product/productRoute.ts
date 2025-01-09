@@ -5,6 +5,7 @@ import {
     getProductById,
     editProduct,
     findAllProductsByCatIds,
+    getRelatedProducts,
 } from "../../controllers/products/productController";
 import { verifyUser, verifyAdmin } from "../../middlewares/verify";
 import {Router} from 'express';
@@ -17,4 +18,5 @@ router.get('/:id', getProductById);
 router.patch('/:id/edit',verifyAdmin,editProduct);
 router.get('/', findAllProducts);
 router.get('/category/:id', findAllProductsByCatIds);
+router.get('/:productId/related', getRelatedProducts);
 export default router;
