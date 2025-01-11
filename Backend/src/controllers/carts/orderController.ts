@@ -4,29 +4,45 @@ import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
 
 export const updateOrderStatus = async (req: Request, res: Response) => {
-    console.log("order_updateStatus");
-    try {
-        const { orderId } = req.params; 
-        const { status } = req.body;  
+  console.log("order_updateStatus");
+  try {
+    const { orderId } = req.params;
+    const { status } = req.body;
 
-        const validStatuses = ["awaiting_slip_upload","awaiting_confirmation", "order_approved", "order_cancelled"];
-        if (!validStatuses.includes(status)) {
-          return res.status(400).json({ message: "Invalid status. Valid statuses are: pending, confirmed, cancelled." });
-        }
-        const existingOrder = await prisma.order.findUnique({ where: { id: Number(orderId) } });
-        if (!existingOrder) {
-          return res.status(404).json({ message: "Order not found." });
-        }
-
-        const updatedOrder = await prisma.order.update({
-            where: { id: Number(orderId) },
-            data: { status },
+    const validStatuses = [
+      "awaiting_slip_upload",
+      "awaiting_confirmation",
+      "order_approved",
+      "order_cancelled",
+    ];
+    if (!validStatuses.includes(status)) {
+      return res
+        .status(400)
+        .json({
+          message:
+            "Invalid status. Valid statuses are: pending, confirmed, cancelled.",
         });
-        return res.status(200).json({ message: "Order status updated successfully.", updatedOrder });
-    } catch (error) {
-        console.error("Order status update error:", error);
-        return res.status(500).json({ error: "Failed to update order status", details: error });
     }
+    const existingOrder = await prisma.order.findUnique({
+      where: { id: Number(orderId) },
+    });
+    if (!existingOrder) {
+      return res.status(404).json({ message: "Order not found." });
+    }
+
+    const updatedOrder = await prisma.order.update({
+      where: { id: Number(orderId) },
+      data: { status },
+    });
+    return res
+      .status(200)
+      .json({ message: "Order status updated successfully.", updatedOrder });
+  } catch (error) {
+    console.error("Order status update error:", error);
+    return res
+      .status(500)
+      .json({ error: "Failed to update order status", details: error });
+  }
 };
 
 //get all orders for admin
@@ -43,7 +59,8 @@ export const getAllOrders = async (req: Request, res: Response) => {
     const statuses = typeof status === "string" ? status.split(",") : [];
 
     // สร้าง filter สำหรับ Prisma
-    const statusFilter = statuses.length > 0 ? { status: { in: statuses } } : {};
+    const statusFilter =
+      statuses.length > 0 ? { status: { in: statuses } } : {};
 
     // ดึงคำสั่งซื้อจากฐานข้อมูล
     const orders = await prisma.order.findMany({
@@ -59,9 +76,7 @@ export const getAllOrders = async (req: Request, res: Response) => {
   }
 };
 
-
 //get own orders
-
 export const getmyOrder = async (req: Request, res: Response) => {
   console.log("order_getMine");
   try {
@@ -69,13 +84,23 @@ export const getmyOrder = async (req: Request, res: Response) => {
     const status = req.params.status;
     console.log(`status:${status}`);
 
-    const validStatuses = ["awaiting_slip_upload","awaiting_confirmation", "order_approved", "order_cancelled"];
+    const validStatuses = [
+      "awaiting_slip_upload",
+      "awaiting_confirmation",
+      "order_approved",
+      "order_cancelled",
+    ];
     if (!validStatuses.includes(status)) {
-      return res.status(400).json({ message: "Invalid status. Valid statuses are: pending, confirmed, cancelled." });
+      return res
+        .status(400)
+        .json({
+          message:
+            "Invalid status. Valid statuses are: pending, confirmed, cancelled.",
+        });
     }
 
     const orders = await prisma.order.findMany({
-      where: { 
+      where: {
         userId,
         status,
       },
@@ -87,5 +112,19 @@ export const getmyOrder = async (req: Request, res: Response) => {
   } catch (error) {
     console.error("Error in getmyOrder:", error);
     return res.status(500).json({ message: "Failed to get orders", error });
+  }
+};
+//get order by just Id
+export const getOrderById = async (req: Request, res: Response) => {
+  console.log("order_getById");
+  try {
+    const userId = (req as any).user.Id;
+    const orderId = Number(req.params.orderId);
+    if (!orderId) return res.status(400).json({ message: "no oreder Id" });
+    const order = await prisma.order.findUnique({
+      where: { id: orderId, userId: userId },
+    });
+  } catch (error) {
+    return res.status(500).json({ message: `Failed to get orders Id `, error });
   }
 };

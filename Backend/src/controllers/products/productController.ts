@@ -331,6 +331,21 @@ export const getRelatedProducts = async (req:Request, res:Response) => {
           },
         ],
       },
+      include: {
+        ProductCategory: {
+          include: {
+            category: true,
+          },
+        },
+        Image: {
+          where: {
+            name: "CoverImage",
+          },
+          select: {
+            imageUrl: true,
+          },
+        },
+      },
       take: 20, // ดึงข้อมูลมากกว่า 5 เพื่อตรวจสอบเพิ่มเติม
     });
     

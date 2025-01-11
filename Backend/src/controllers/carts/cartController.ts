@@ -14,6 +14,9 @@ export const createCart = async (req: Request, res: Response) => {
         .json({ message: "Invalid userId. It must be a number." });
     }
     const { productId, quantity, totalPrice } = req.body;
+    console.log("productID:" + productId);
+    console.log("quantity:" + quantity);
+    console.log("totalPrice:" + totalPrice);
     const cartItem = await prisma.cart.findFirst({
       where: { userId, productId },
     });
@@ -109,7 +112,9 @@ export const getPersonalCart = async (req: Request, res: Response) => {
         product: true, // ดึงข้อมูลจากตาราง Product ที่สัมพันธ์กับ Cart
       },
     });
+    console.log(`cartItems:${cartItems}`)
     return res.status(200).json(cartItems);
+    
   } catch (error) {
     return res
       .status(500)
@@ -118,8 +123,8 @@ export const getPersonalCart = async (req: Request, res: Response) => {
 };
 
 //deleteCartItems
-export const deleteCart = async (req: Request, res: Response) => {
-  console.log("cart_delete");
+export const deleteOneCartItem = async (req: Request, res: Response) => {
+  console.log("cart_deleteOne");
   try {
     const userId = (req as any).user.id;
     const { id } = req.params;
@@ -142,6 +147,21 @@ export const deleteCart = async (req: Request, res: Response) => {
   }
 };
 
+//delete all cart Items
+export const clearCartItems = async (req: Request, res: Response) => {
+  console.log("cart_clear");
+try {
+  const userId = (req as any).user.id;
+  if (!userId) return res.status(400).json({ message: "user is required" });
+  await prisma.cart.deleteMany({
+    where: { userId },
+  });
+  return res.status(200).json({ message: "Cleared all cart items" });
+} catch (error) {
+ return res.status(500).json({message:"something went wron in backend",error}) 
+}
+}
+
 //checkout
 export const checkout = async (req: Request, res: Response) => {
   console.log("cart_checkout");
@@ -152,7 +172,6 @@ export const checkout = async (req: Request, res: Response) => {
     const cartItems = await prisma.cart.findMany({
       where: {
         userId,
-        isCheckedOut: false,
       },
     });
     if (cartItems.length === 0) {
@@ -182,12 +201,10 @@ export const checkout = async (req: Request, res: Response) => {
     });
 
     // อัปเดต Cart ให้เป็น CheckedOut
-    await prisma.cart.updateMany({
+    await prisma.cart.deleteMany({
       where: {
         userId,
-        isCheckedOut: false,
       }, // เงื่อนไข
-      data: { isCheckedOut: true }, // ค่าใหม่
     });
   } catch (error) {
     console.error("Checkout error:", error);
