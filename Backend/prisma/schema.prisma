@@ -68,14 +68,15 @@ model ProductCategory {
 }
 
 model Addresses {
-  id        Int      @id @default(autoincrement())
-  userId    Int
-  street    String
-  city      String
-  state     String
-  zipCode   String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id            Int      @id @default(autoincrement())
+  userId        Int @unique
+  recipientName String
+  street        String
+  city          String
+  state         String
+  zipCode       String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
   // Relation field
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -94,13 +95,13 @@ model ProductImage {
 }
 
 model Cart {
-  id           Int      @id @default(autoincrement())
-  userId       Int
-  productId    Int
-  quantity     Int      @default(1)
-  totalPrice   Float?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id         Int      @id @default(autoincrement())
+  userId     Int
+  productId  Int
+  quantity   Int      @default(1)
+  totalPrice Float?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
   // Relation field
   user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
