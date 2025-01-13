@@ -3,7 +3,7 @@ import { storage } from "../config/firebase";
 
 export const uploadProductImageToFirebase = async (file: Express.Multer.File): Promise<string> => {
   try {
-    const fileName = `products/${file.originalname}`;
+    const fileName = `slip/${file.originalname}`;
     const storageRef = ref(storage, fileName);
 
     // Upload the file
@@ -19,12 +19,12 @@ export const uploadProductImageToFirebase = async (file: Express.Multer.File): P
   }
 };
 
-export const deleteImageFromFirebase = async (imageUrl: string): Promise<void> => {
-  try {
-    console.error("Firebase Client SDK does not support file deletion directly.");
-    throw new Error("File deletion is not supported using Firebase Client SDK.");
-  } catch (error) {
-    console.error("Error deleting image from Firebase:", error);
-    throw new Error("Failed to delete image from Firebase.");
-  }
-};
+// export const deleteImageFromFirebase = async (imageUrl: string): Promise<void> => {
+//   try {
+//     console.error("Firebase Client SDK does not support file deletion directly.");
+//     throw new Error("File deletion is not supported using Firebase Client SDK.");
+//   } catch (error) {
+//     console.error("Error deleting image from Firebase:", error);
+//     throw new Error("Failed to delete image from Firebase.");
+//   }
+// };
