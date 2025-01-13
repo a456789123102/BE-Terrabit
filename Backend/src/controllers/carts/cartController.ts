@@ -105,7 +105,6 @@ export const getPersonalCart = async (req: Request, res: Response) => {
     }
     const cartItems = await prisma.cart.findMany({
       where: { userId,
-        isCheckedOut: false
        },
       
       include: {

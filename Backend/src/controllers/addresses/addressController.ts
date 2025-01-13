@@ -12,11 +12,11 @@ export const createAddress = async (req: Request, res: Response) => {
     if (!recipientName || !street || !city || !state || !zipCode) {
       return res.status(400).json({ message: "All fields are required" });
     }
-    const isExistingAddress = await prisma.addresses.findMany({
+    const isExistingAddress = await prisma.addresses.findUnique({
       where: { userId: userId },
     });
     if (isExistingAddress) {
-      return res.status(400).json({ message: "Address already exists" });
+      return res.status(409).json({ message: "Address already exists" });
     }
     const address = await prisma.addresses.create({
       data: {
@@ -53,7 +53,6 @@ export const getOwnAddresses = async (req: Request, res: Response) => {
 export const editAddress = async (req: Request, res: Response) => {
   console.log("Address_edit");
   try {
-    const addressId = req.params.addressId;
     const userId = Number((req as any).user.id);
     const { recipientName, street, city, state, zipCode } = req.body;
     if (!recipientName || !street || !city || !state || !zipCode) {
@@ -61,7 +60,6 @@ export const editAddress = async (req: Request, res: Response) => {
     }
     const isExistingAddress = await prisma.addresses.findUnique({
       where: {
-        id: Number(addressId),
         userId: userId,
       },
     });
@@ -70,7 +68,6 @@ export const editAddress = async (req: Request, res: Response) => {
     }
     const address = await prisma.addresses.update({
       where: {
-        id: Number(addressId),
         userId: userId,
       },
       data: {

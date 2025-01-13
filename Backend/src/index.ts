@@ -3,6 +3,7 @@ import bodyParser from 'body-parser';
 
 import authRoute from "./routes/users/authRoute";
 import userRoute from "./routes/users/userRoute";
+import addressRoute from "./routes/address/addressRoute";
 import categoryRoute from "./routes/product/categoryRoute";
 import productRoute from "./routes/product/productRoute";
 import reviewRoute from "./routes/product/reviewRoute";
@@ -27,6 +28,7 @@ app.use(prefix +"/auth", authRoute);
 app.use(prefix +"/user",userRoute);
 app.use(prefix +"/category",categoryRoute);
 app.use(prefix +"/product", productRoute);
+ app.use(prefix +"/address", addressRoute);
 app.use(prefix +"/reviews", reviewRoute);
 app.use(prefix+ "/productImage",productImageRoute);
 app.use(prefix+ "/career",careerRoute);
