@@ -114,17 +114,47 @@ export const getmyOrder = async (req: Request, res: Response) => {
     return res.status(500).json({ message: "Failed to get orders", error });
   }
 };
-//get order by just Id
+//get order by just Id  will delete soon
 export const getOrderById = async (req: Request, res: Response) => {
   console.log("order_getById");
   try {
-    const userId = (req as any).user.Id;
+    const userId = (req as any).user.id;
     const orderId = Number(req.params.orderId);
-    if (!orderId) return res.status(400).json({ message: "no oreder Id" });
+    if (!orderId) return res.status(400).json({ message: "No order Id" });
     const order = await prisma.order.findUnique({
       where: { id: orderId, userId: userId },
+      include: { items: true },
     });
+    if (!order) return res.status(404).json({ message: "Order not found" });
+    return res.status(200).json(order);
   } catch (error) {
-    return res.status(500).json({ message: `Failed to get orders Id `, error });
+    console.error("Error in getOrderById:", error);
+    return res.status(500).json({ message: "Failed to get order by Id", error });
+  }
+};
+
+// delete order
+export const deleteOrder = async (req: Request, res: Response) => {
+  console.log("order_delete");
+  try {
+    const userId = (req as any).user.id;
+    const { orderId } = req.params;
+
+    const existingOrder = await prisma.order.findUnique({
+      where: { id: Number(orderId), userId },
+    });
+
+    if (!existingOrder) {
+      return res.status(404).json({ message: "Order not found." });
+    }
+
+    await prisma.order.delete({
+      where: { id: Number(orderId) },
+    });
+
+    return res.status(200).json({ message: "Order deleted successfully." });
+  } catch (error) {
+    console.error("Error deleting order:", error);
+    return res.status(500).json({ message: "Failed to delete order", error });
   }
 };

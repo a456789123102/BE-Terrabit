@@ -127,6 +127,7 @@ model OrderItem {
   id        Int      @id @default(autoincrement())
   orderId   Int
   productId Int
+  productName String
   quantity  Int
   price     Float
   createdAt DateTime @default(now())

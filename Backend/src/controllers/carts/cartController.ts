@@ -6,7 +6,8 @@ const prisma = new PrismaClient();
 export const createCart = async (req: Request, res: Response) => {
   console.log("Cart_create");
   try {
-    const userId = (req as any).user.id;
+    const userId = (req as any).user?.id;
+    if (!userId) return res.status(401).json({ message: "Unauthorized: Invalid or missing token" });
     console.log("userID:" + userId);
     if (isNaN(userId)) {
       return res
@@ -42,6 +43,7 @@ export const createCart = async (req: Request, res: Response) => {
       .json({ error: "Failed to add to cart", details: error });
   }
 };
+
 //update quantity
 export const updateQuantity = async (req: Request, res: Response) => {
   console.log("Cart_update");
@@ -166,12 +168,10 @@ export const checkout = async (req: Request, res: Response) => {
   console.log("cart_checkout");
   try {
     const userId = (req as any).user.id;
-    if (!userId) return res.status(400).json({ message: "user is required" });
+    if (!userId) return res.status(400).json({ message: "User is required" });
 
     const cartItems = await prisma.cart.findMany({
-      where: {
-        userId,
-      },
+      where: { userId },
     });
     if (cartItems.length === 0) {
       return res
@@ -184,33 +184,52 @@ export const checkout = async (req: Request, res: Response) => {
       0
     );
 
-    // สร้าง order ใหม่
+    // Create new order
     const newOrder = await prisma.order.create({
-      data: { userId, totalPrice},
+      data: { userId, totalPrice },
     });
-    // สร้าง orderItems จาก cartItems
-    const orderItems = cartItems.map((item) => ({
-      orderId: newOrder.id,
-      productId: item.productId,
-      quantity: item.quantity,
-      price: item.totalPrice || 0, // ราคาจาก cart
-    }));
+
+    // Create orderItems from cartItems
+    const orderItems = await Promise.all(
+      cartItems.map(async (item) => {
+        const product = await prisma.product.findUnique({
+          where: { id: item.productId },
+        });
+
+        if (!product || !product.name) {
+          throw new Error(
+            `Product with ID ${item.productId} not found or does not have a valid name`
+          );
+        }
+
+        return {
+          orderId: newOrder.id,
+          productId: item.productId,
+          productName: product.name, // Ensure this value is valid
+          quantity: item.quantity,
+          price: item.totalPrice || 0,
+        };
+      })
+    );
+
+    // Batch insert order items
     await prisma.orderItem.createMany({
       data: orderItems,
     });
 
-    // อัปเดต Cart ให้เป็น CheckedOut
+    // Clear the cart
     await prisma.cart.deleteMany({
-      where: {
-        userId,
-      }, // เงื่อนไข
+      where: { userId },
     });
+
+    return res.status(200).json({ message: "Checkout successful", newOrder });
   } catch (error) {
     console.error("Checkout error:", error);
     return res
       .status(500)
-      .json({ error: "Failed to checkout", details: error });
+      .json({ error: "Failed to checkout", details: error});
   }
 };
+
 
 
