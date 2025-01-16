@@ -4,7 +4,7 @@ import {Router} from 'express';
 
 const router = Router();
 router.post('/create', verifyUser, createAddress);
-router.patch('/update', verifyUser,editAddress);
+router.patch('/:addressId/update', verifyUser,editAddress);
 router.get('/myAddress',verifyUser,getOwnAddresses);
-router.delete('/delete',verifyUser,deleteAddress);
+router.delete('/:addressId/delete',verifyUser,deleteAddress);
 export default router;

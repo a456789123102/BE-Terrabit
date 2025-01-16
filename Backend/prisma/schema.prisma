@@ -70,7 +70,7 @@ model ProductCategory {
 
 model Addresses {
   id            Int      @id @default(autoincrement())
-  userId        Int      @unique
+  userId        Int
   recipientName String
   street        String
   city          String
@@ -80,7 +80,8 @@ model Addresses {
   updatedAt     DateTime @updatedAt
 
   // Relation field
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user  User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  Order Order[]
 }
 
 model ProductImage {
@@ -118,24 +119,26 @@ model Order {
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
-  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
-  items     OrderItem[]
-  SlipImage SlipImage?
+  Address     Addresses? @relation(fields: [addressesId], references: [id])
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items       OrderItem[]
+  SlipImage   SlipImage?
+  addressesId Int?
 }
 
 model OrderItem {
-  id        Int      @id @default(autoincrement())
-  orderId   Int
-  productId Int
+  id          Int      @id @default(autoincrement())
+  orderId     Int
+  productId   Int
   productName String
-  quantity  Int
-  price     Float
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  product   Product  @relation(fields: [productId], references: [id])
-  User      User?    @relation(fields: [userId], references: [id])
-  userId    Int?
+  quantity    Int
+  price       Float
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  order       Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product     Product  @relation(fields: [productId], references: [id])
+  User        User?    @relation(fields: [userId], references: [id])
+  userId      Int?
 }
 
 model SlipImage {
