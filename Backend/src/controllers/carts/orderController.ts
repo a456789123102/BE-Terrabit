@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import { PrismaClient } from "@prisma/client";
+import exp from "constants";
 
 const prisma = new PrismaClient();
 
@@ -158,3 +159,43 @@ export const deleteOrder = async (req: Request, res: Response) => {
     return res.status(500).json({ message: "Failed to delete order", error });
   }
 };
+////////////////////////////////////////////////////////////////////////////////////////
+export const updateOrderAddress = async (req: Request, res: Response) => {
+  console.log("order_updateAddress");
+  try {
+    const userId = (req as any).user.id;
+    const { orderId } = req.params;
+    const isExistingOrder = await prisma.order.findUnique({
+      where:{
+        id:Number(orderId),
+        userId
+      }
+    });
+    if(!isExistingOrder){
+      return res.status(404).json({message:"Order not found"});
+    }
+
+const { newAddressId } = req.body;
+const isExistingNewAddress = await prisma.addresses.findUnique({
+  where:{
+    id:Number(newAddressId),
+    userId
+  }
+});
+if(!isExistingNewAddress){
+  return res.status(404).json({message:"New address not found"});
+}
+const updatedOrder = await prisma.order.update({
+  where: {
+    id: Number(orderId),
+    userId
+  },
+  data: {
+    addressesId: Number(newAddressId)
+  }
+});
+return res.status(200).json({ message: "Order address updated successfully.", updatedOrder });
+  } catch (error) {
+    return res.status(500).json({error:"Failed to update order address",details:error})
+  }
+}

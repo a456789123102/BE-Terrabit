@@ -45,6 +45,22 @@ export const getOwnAddresses = async (req: Request, res: Response) => {
     }
 }
 
+export const getOneAddresses = async (req: Request, res: Response) => {
+  try {
+      const userId = Number((req as any).user.id);
+      const addressId = Number(req.params.addressId);
+      if (!userId) return res.status(400).json({ message: "User is required" });
+      const address = await prisma.addresses.findMany({
+        
+          where: {id: addressId, userId: userId, },
+      });
+      return res.status(200).json({message:"success",address});
+  } catch (error) {
+      return res.status(500).json({ message:"error creating address", error });
+  }
+}
+
+
 export const editAddress = async (req: Request, res: Response) => {
   console.log("Address_edit");
   try {
@@ -91,6 +107,15 @@ export const deleteAddress = async (req: Request, res: Response) => {
     const userId = Number((req as any).user.id);
     const addressId = Number(req.params.addressId);
     if(!userId) return res.status(404).json({message:"user not found"});
+    const isExistingAddress = await prisma.addresses.findUnique({
+        where: {
+          id: addressId,
+          userId: userId,
+        },
+    });
+    if (!isExistingAddress) {
+      return res.status(404).json({ message: "Address not found" });
+    }
     await prisma.addresses.delete({
         where: {
           id: addressId,
