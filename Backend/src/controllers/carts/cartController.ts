@@ -105,23 +105,43 @@ export const getPersonalCart = async (req: Request, res: Response) => {
         .status(400)
         .json({ message: "Invalid userId. It must be a number.", userId });
     }
+
     const cartItems = await prisma.cart.findMany({
-      where: { userId,
-       },
-      
+      where: { userId },
       include: {
-        product: true, // ดึงข้อมูลจากตาราง Product ที่สัมพันธ์กับ Cart
+        product: {
+          include: {
+            Image: {
+              where: {
+                name: "CoverImage", // Filter to only include the cover image
+              },
+            },
+          },
+        },
       },
     });
-    console.log(`cartItems:${cartItems}`)
-    return res.status(200).json(cartItems);
-    
+
+    // Log the result to check the structure
+    console.log(`cartItems:`, cartItems);
+
+    // Map the cart items to include the cover image in the response
+    const result = cartItems.map((cartItem) => ({
+      ...cartItem,
+      product: {
+        ...cartItem.product,
+        CoverImage: cartItem.product.Image?.[0]?.imageUrl || null, // Extract the image URL
+      },
+    }));
+
+    return res.status(200).json(result);
   } catch (error) {
+    console.error("Error fetching personal cart:", error);
     return res
       .status(500)
       .json({ error: "Failed to get personal cart", details: error });
   }
 };
+
 
 //deleteCartItems
 export const deleteOneCartItem = async (req: Request, res: Response) => {

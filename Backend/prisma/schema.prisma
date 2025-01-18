@@ -119,10 +119,9 @@ model Order {
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
-  Address     Addresses? @relation(fields: [addressesId], references: [id])
+  Address     Addresses?  @relation(fields: [addressesId], references: [id])
   user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   items       OrderItem[]
-  SlipImage   SlipImage?
   addressesId Int?
 }
 
@@ -139,16 +138,6 @@ model OrderItem {
   product     Product  @relation(fields: [productId], references: [id])
   User        User?    @relation(fields: [userId], references: [id])
   userId      Int?
-}
-
-model SlipImage {
-  id        Int      @id @default(autoincrement())
-  orderId   Int      @unique
-  imageUrl  String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
 }
 
 model Review {
