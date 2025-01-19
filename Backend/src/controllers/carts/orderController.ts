@@ -14,6 +14,7 @@ export const updateOrderStatus = async (req: Request, res: Response) => {
       "awaiting_slip_upload",
       "awaiting_confirmation",
       "order_approved",
+      "order_rejected",
       "order_cancelled",
     ];
     if (!validStatuses.includes(status)) {
@@ -166,36 +167,57 @@ export const updateOrderAddress = async (req: Request, res: Response) => {
     const userId = (req as any).user.id;
     const { orderId } = req.params;
     const isExistingOrder = await prisma.order.findUnique({
-      where:{
-        id:Number(orderId),
-        userId
-      }
+      where: {
+        id: Number(orderId),
+        userId,
+      },
     });
-    if(!isExistingOrder){
-      return res.status(404).json({message:"Order not found"});
+
+    if (!isExistingOrder) {
+      return res.status(404).json({ message: "Order not found" });
     }
 
-const { newAddressId } = req.body;
-const isExistingNewAddress = await prisma.addresses.findUnique({
-  where:{
-    id:Number(newAddressId),
-    userId
-  }
-});
-if(!isExistingNewAddress){
-  return res.status(404).json({message:"New address not found"});
-}
-const updatedOrder = await prisma.order.update({
-  where: {
-    id: Number(orderId),
-    userId
-  },
-  data: {
-    addressesId: Number(newAddressId)
-  }
-});
-return res.status(200).json({ message: "Order address updated successfully.", updatedOrder });
+    const { newAddressId } = req.body;
+    const isExistingNewAddress = await prisma.addresses.findUnique({
+      where: {
+        id: Number(newAddressId),
+        userId,
+      },
+    });
+
+    if (!isExistingNewAddress) {
+      return res.status(404).json({ message: "New address not found" });
+    }
+
+    // อัปเดตคำสั่งซื้อด้วย address ใหม่
+    const updatedOrder = await prisma.order.update({
+      where: {
+        id: Number(orderId),
+      },
+      data: {
+        addressesId: Number(newAddressId),
+      },
+    });
+
+    // ตรวจสอบว่ามี slipUrl อยู่หรือไม่
+    if (updatedOrder.slipUrl) {
+      // หากมี slipUrl และ addressesId ให้เปลี่ยนสถานะเป็น awaiting_confirmation
+      await prisma.order.update({
+        where: { id: Number(orderId) },
+        data: {
+          status: "awaiting_confirmation",
+        },
+      });
+    }
+
+    return res.status(200).json({
+      message: "Order address updated successfully.",
+      updatedOrder,
+    });
   } catch (error) {
-    return res.status(500).json({error:"Failed to update order address",details:error})
+    return res.status(500).json({
+      error: "Failed to update order address",
+      details: error,
+    });
   }
-}
+};
