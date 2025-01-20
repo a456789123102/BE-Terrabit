@@ -4,7 +4,7 @@ import exp from "constants";
 
 const prisma = new PrismaClient();
 
-export const updateOrderStatus = async (req: Request, res: Response) => {
+export const updateOrderStatusByUser = async (req: Request, res: Response) => {
   console.log("order_updateStatus");
   try {
     const { orderId } = req.params;
@@ -13,6 +13,49 @@ export const updateOrderStatus = async (req: Request, res: Response) => {
     const validStatuses = [
       "awaiting_slip_upload",
       "awaiting_confirmation",
+      "awaiting_rejection",
+      "order_cancelled",
+    ];
+    if (!validStatuses.includes(status)) {
+      return res
+        .status(400)
+        .json({
+          message:
+            "Invalid status. Valid statuses are: pending, confirmed, cancelled.",
+        });
+    }
+    const existingOrder = await prisma.order.findUnique({
+      where: { id: Number(orderId) },
+    });
+    if (!existingOrder) {
+      return res.status(404).json({ message: "Order not found." });
+    }
+
+    const updatedOrder = await prisma.order.update({
+      where: { id: Number(orderId) },
+      data: { status },
+    });
+    return res
+      .status(200)
+      .json({ message: "Order status updated successfully.", updatedOrder });
+  } catch (error) {
+    console.error("Order status update error:", error);
+    return res
+      .status(500)
+      .json({ error: "Failed to update order status", details: error });
+  }
+};
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+export const updateOrderStatusByAdmin = async (req: Request, res: Response) => {
+  console.log("order_updateStatus");
+  try {
+    const { orderId } = req.params;
+    const { status } = req.body;
+
+    const validStatuses = [
+      "awaiting_slip_upload",
+      "awaiting_confirmation",
+      "awaiting_rejection",
       "order_approved",
       "order_rejected",
       "order_cancelled",
@@ -48,7 +91,6 @@ export const updateOrderStatus = async (req: Request, res: Response) => {
 };
 
 //get all orders for admin
-
 export const getAllOrders = async (req: Request, res: Response) => {
   console.log("order_getall");
   try {
@@ -89,7 +131,9 @@ export const getmyOrder = async (req: Request, res: Response) => {
     const validStatuses = [
       "awaiting_slip_upload",
       "awaiting_confirmation",
+      "awaiting_rejection",
       "order_approved",
+      "order_rejected",
       "order_cancelled",
     ];
     if (!validStatuses.includes(status)) {
@@ -221,3 +265,4 @@ export const updateOrderAddress = async (req: Request, res: Response) => {
     });
   }
 };
+//////////////////////////////////////////////////

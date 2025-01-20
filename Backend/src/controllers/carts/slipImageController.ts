@@ -17,6 +17,8 @@
       return res.status(404).json({ message: "Order not found." });
 
     const file = req.file;
+    console.log("req.file:",file);
+
     if (!file) {
       return res.status(400).json({ message: "No file uploaded." });
     }
@@ -65,3 +67,33 @@
   }
 };
 
+export const deleteSlip = async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).user.id;
+    const { orderId } = req.params;
+    const isExistingOrder = await prisma.order.findUnique({
+      where: { id: Number(orderId), userId: userId },
+    });
+
+    if (!isExistingOrder)
+      return res.status(404).json({ message: "Order not found." });
+
+    const updatedOrder = await prisma.order.update({
+      where: { id: Number(orderId) },
+      data: {
+        slipUrl: null,
+        status: "awaiting_slip_upload",
+      },
+    });
+
+    return res.status(200).json({
+      message: "Slip deleted successfully.",
+      updatedOrder,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      error: "Failed to delete Slip Image",
+      details: error,
+    });
+  }
+}
