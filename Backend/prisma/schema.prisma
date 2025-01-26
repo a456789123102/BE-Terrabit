@@ -1,9 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -47,7 +41,7 @@ model Product {
   ProductCategory ProductCategory[]
   Cart            Cart[]
   OrderItem       OrderItem[]
-  Review          Review[]
+  Review          Review[]          // Removed `onDelete` here
   Image           ProductImage[]
 }
 
@@ -79,7 +73,6 @@ model Addresses {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
-  // Relation field
   user  User    @relation(fields: [userId], references: [id], onDelete: Cascade)
   Order Order[]
 }
@@ -89,26 +82,26 @@ model ProductImage {
   name      String
   imageUrl  String
   createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  updatedAt DateTime @default(now())
 
-  // Relation field
   product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
   productId Int
 }
 
+
 model Cart {
   id         Int      @id @default(autoincrement())
   userId     Int
-  productId  Int
+  productId  Int?
   quantity   Int      @default(1)
   totalPrice Float?
   createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  updatedAt  DateTime @default(now())
 
-  // Relation field
   user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  product Product @relation(fields: [productId], references: [id])
+  product Product? @relation(fields: [productId], references: [id], onDelete: SetNull) // ตั้งค่าเป็น NULL เมื่อ Product ถูกลบ
 }
+
 
 model Order {
   id         Int      @id @default(autoincrement())
@@ -117,7 +110,7 @@ model Order {
   status     String   @default("awaiting_slip_upload")
   slipUrl    String?
   createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  updatedAt  DateTime @default(now())
 
   Address     Addresses?  @relation(fields: [addressesId], references: [id])
   user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -128,17 +121,19 @@ model Order {
 model OrderItem {
   id          Int      @id @default(autoincrement())
   orderId     Int
-  productId   Int
+  productId   Int?
   productName String
   quantity    Int
   price       Float
   createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  updatedAt   DateTime @default(now())
+
   order       Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  product     Product  @relation(fields: [productId], references: [id])
+  product     Product? @relation(fields: [productId], references: [id], onDelete: SetNull) // ตั้งค่าเป็น NULL เมื่อ Product ถูกลบ
   User        User?    @relation(fields: [userId], references: [id])
   userId      Int?
 }
+
 
 model Review {
   id        Int      @id @default(autoincrement())
@@ -162,7 +157,7 @@ model Thread {
   content    String
   categoryId Int
   createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  updatedAt  DateTime @default(now())
 
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   category  Category @relation(fields: [categoryId], references: [id])
@@ -177,7 +172,7 @@ model Reply {
   threadId  Int
   content   String
   createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  updatedAt DateTime @default(now())
 
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   thread Thread @relation(fields: [threadId], references: [id], onDelete: Cascade)
@@ -202,7 +197,7 @@ model Announcement {
   content   String
   image     String?
   createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  updatedAt DateTime @default(now())
   userId    Int
 
   User User @relation(fields: [userId], references: [id], onDelete: Restrict)
@@ -217,5 +212,5 @@ model Career {
   location    String
   salary      Float
   createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  updatedAt   DateTime @default(now())
 }

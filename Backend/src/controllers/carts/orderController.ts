@@ -89,37 +89,69 @@ export const updateOrderStatusByAdmin = async (req: Request, res: Response) => {
       .json({ error: "Failed to update order status", details: error });
   }
 };
-
+////////////////////////////////////////////////////////////////////////////////////////////
 //get all orders for admin
 export const getAllOrders = async (req: Request, res: Response) => {
   console.log("order_getall");
   try {
-    // ดึง status จาก query string
     const { status } = req.query;
-
-    console.log(`status: ${status}`);
-
-    // ตรวจสอบและแปลง status เป็น array
     const statuses = typeof status === "string" ? status.split(",") : [];
+    const statusFilter = statuses.length > 0 ? { status: { in: statuses } } : {};
+    const searchQuery = req.query.search as string | undefined;
+    const page = Number(req.query.page) || 1;
+    const pageSize = Number(req.query.pageSize) || 10;
+    const offset = (page - 1) * pageSize;
 
-    // สร้าง filter สำหรับ Prisma
-    const statusFilter =
-      statuses.length > 0 ? { status: { in: statuses } } : {};
+    // สร้าง searchFilter
+    const searchFilter =
+      typeof searchQuery === "string" && searchQuery.trim().length > 0
+        ? {
+            OR: [
+              { id: parseInt(searchQuery) || undefined }, // ค้นหา orderId
+              { userId: parseInt(searchQuery) || undefined }, // ค้นหา userId
+              { items: { some: { productName: { contains: searchQuery } } } }, // ค้นหา productName ใน items
+            ].filter(Boolean),
+          }
+        : {};
 
-    // ดึงคำสั่งซื้อจากฐานข้อมูล
+    // รวมเงื่อนไข statusFilter และ searchFilter
+    const combinedFilter = {
+      ...statusFilter,
+      ...searchFilter,
+    };
+
+    // ดึงข้อมูลคำสั่งซื้อจากฐานข้อมูล
     const orders = await prisma.order.findMany({
-      where: statusFilter, // ใช้เงื่อนไขสำหรับ status
-      include: { items: true }, // ดึงข้อมูล items ที่เกี่ยวข้อง
+      skip: offset,
+      take: pageSize,
+      where: combinedFilter,
+      include: { items: true },
     });
 
+    // นับจำนวนคำสั่งซื้อทั้งหมด
+    const totalOrders = await prisma.order.count({
+      where: combinedFilter,
+    });
+
+    const totalPages = Math.ceil(totalOrders / pageSize);
+
     // ส่งข้อมูลคำสั่งซื้อกลับ
-    return res.status(200).json({ orders });
+    return res.status(200).json({
+      orders,
+      pagination: {
+        page,
+        pageSize,
+        totalOrders,
+        totalPages,
+      },
+    });
   } catch (error) {
     console.error("Error fetching orders:", error);
     return res.status(500).json({ message: "Failed to fetch orders", error });
   }
 };
 
+//////////////////////////////////////////////////////////////////////////////////////////
 //get own orders
 export const getmyOrder = async (req: Request, res: Response) => {
   console.log("order_getMine");
@@ -178,7 +210,7 @@ export const getOrderById = async (req: Request, res: Response) => {
     return res.status(500).json({ message: "Failed to get order by Id", error });
   }
 };
-
+///////////////////////////////////////////////////////////////////////////////////
 // delete order
 export const deleteOrder = async (req: Request, res: Response) => {
   console.log("order_delete");

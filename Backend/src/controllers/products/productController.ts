@@ -361,7 +361,7 @@ export const getRelatedProducts = async (req:Request, res:Response) => {
         };
       })
       .sort((a, b) => b.matchScore - a.matchScore) // เรียงลำดับคะแนนจากมากไปน้อย
-      .slice(0, 5); // จำกัดผลลัพธ์ที่ 5 รายการ
+      .slice(0, 4); // จำกัดผลลัพธ์ที่ 5 รายการ
     
     
     return res.status(200).json({ relatedProducts });
@@ -373,3 +373,41 @@ export const getRelatedProducts = async (req:Request, res:Response) => {
       .json({ message: "An error occurred while fetching related products" });
   }
 }
+//////////////////////////////////////////////////////////
+export const deleteProduct = async (req: Request, res: Response) => {
+  try {
+    console.log("Product_delete");
+    const { id } = req.params;
+    const productId = parseInt(id);
+
+    // ตรวจสอบว่ามี product ในฐานข้อมูลหรือไม่
+    const isExistingProduct = await prisma.product.findFirst({
+      where: { id: productId },
+    });
+
+    if (!isExistingProduct) {
+      return res.status(404).json({ message: "Product not found" });
+    }
+
+    // ลบข้อมูลในตารางที่เกี่ยวข้อง
+    await prisma.review.deleteMany({ where: { productId } });
+    await prisma.cart.deleteMany({ where: { productId } });
+    await prisma.orderItem.updateMany({
+      where: { productId },
+      data: { productId: null },
+    });
+    await prisma.productImage.deleteMany({ where: { productId } }); // ลบ ProductImage
+    await prisma.productCategory.deleteMany({ where: { productId } }); // ลบ ProductCategory
+
+    // ลบ Product
+    const deletedProduct = await prisma.product.delete({
+      where: { id: productId },
+    });
+
+    return res.status(200).json({ message: "Delete product success", deletedProduct });
+  } catch (error) {
+    console.error("Error deleting product:", error);
+    return res.status(500).json({ message: "Error deleting product", error });
+  }
+};
+

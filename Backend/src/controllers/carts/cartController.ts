@@ -129,7 +129,7 @@ export const getPersonalCart = async (req: Request, res: Response) => {
       ...cartItem,
       product: {
         ...cartItem.product,
-        CoverImage: cartItem.product.Image?.[0]?.imageUrl || null, // Extract the image URL
+        CoverImage: cartItem.product?.Image?.[0]?.imageUrl || null, // Extract the image URL
       },
     }));
 
@@ -212,9 +212,15 @@ export const checkout = async (req: Request, res: Response) => {
     // Create orderItems from cartItems
     const orderItems = await Promise.all(
       cartItems.map(async (item) => {
+        if (!item.productId) {
+          throw new Error(`Cart item with invalid productId: ${item.productId}`);
+        }
+        
         const product = await prisma.product.findUnique({
           where: { id: item.productId },
         });
+        ;
+        
 
         if (!product || !product.name) {
           throw new Error(
