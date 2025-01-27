@@ -1,6 +1,5 @@
 import { Request, Response } from "express";
 import { PrismaClient } from "@prisma/client";
-import exp from "constants";
 
 const prisma = new PrismaClient();
 
@@ -302,3 +301,61 @@ export const updateOrderAddress = async (req: Request, res: Response) => {
   }
 };
 //////////////////////////////////////////////////
+export const getOrderForCharts = async (req: Request, res: Response) => {
+  console.log("order_getForCharts");
+
+  try {
+    // รับค่า query
+    const interval = (req.query.interval as string) || 'monthly';
+    const startDate = req.query.startDate ? new Date(req.query.startDate as string) : new Date('2025-01-01');
+    const endDate = req.query.endDate ? new Date(req.query.endDate as string) : new Date('2025-12-31');
+
+    // ดึงข้อมูลทั้งหมดจาก Prisma
+    const orders = await prisma.order.findMany({
+      where: {
+        createdAt: {
+          gte: startDate,
+          lte: endDate,
+        },
+      },
+      orderBy: {
+        createdAt: 'asc',
+      },
+    });
+
+    // จัดกลุ่มข้อมูลด้วย JavaScript
+    const groupedData = orders.reduce((acc: any, order) => {
+      const date = new Date(order.createdAt);
+
+      let label;
+      switch (interval) {
+        case 'daily':
+          label = date.toISOString().split('T')[0]; // YYYY-MM-DD
+          break;
+        case 'weekly':
+          label = `Week ${Math.ceil(date.getDate() / 7)} (${date.getMonth() + 1}/${date.getFullYear()})`;
+          break;
+        case 'monthly':
+          label = `${date.getMonth() + 1}/${date.getFullYear()}`; // MM/YYYY
+          break;
+        default:
+          label = date.toISOString().split('T')[0];
+      }
+
+      if (!acc[label]) {
+        acc[label] = { label, totalOrders: 0 };
+      }
+      acc[label].totalOrders += 1;
+      return acc;
+    }, {});
+
+    // แปลงข้อมูลให้อยู่ในรูปแบบ array
+    const result = Object.values(groupedData);
+
+    return res.status(200).json(result);
+  } catch (error) {
+    console.error("Error fetching orders:", error);
+    return res.status(500).json({ message: "Failed to fetch orders Charts data", error });
+  }
+};
+
