@@ -21,7 +21,7 @@ export const updateOrderStatusByUser = async (req: Request, res: Response) => {
         .status(400)
         .json({
           message:
-            "Invalid status. Valid statuses are: pending, confirmed, cancelled.",
+            "Invalid status. Valid statuses areeee: pending, confirmed, cancelled.",
         });
     }
     const existingOrder = await prisma.order.findUnique({
@@ -47,7 +47,7 @@ export const updateOrderStatusByUser = async (req: Request, res: Response) => {
 };
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 export const updateOrderStatusByAdmin = async (req: Request, res: Response) => {
-  console.log("order_updateStatus");
+  console.log("order_updateStatusByAdmin");
   try {
     const { orderId } = req.params;
     const { status } = req.body;
@@ -60,14 +60,13 @@ export const updateOrderStatusByAdmin = async (req: Request, res: Response) => {
       "order_rejected",
       "order_cancelled",
     ];
+    
     if (!validStatuses.includes(status)) {
-      return res
-        .status(400)
-        .json({
-          message:
-            "Invalid status. Valid statuses are: pending, confirmed, cancelled.",
-        });
+      return res.status(400).json({
+        message: `Invalid status. Valid statuses are: ${validStatuses.join(", ")}.`,
+      });
     }
+    
     const existingOrder = await prisma.order.findUnique({
       where: { id: Number(orderId) },
     });
@@ -79,36 +78,40 @@ export const updateOrderStatusByAdmin = async (req: Request, res: Response) => {
       where: { id: Number(orderId) },
       data: { status },
     });
+    console.log(`Updated order Id:${orderId} status: ${status} ` )
     return res
       .status(200)
       .json({ message: "Order status updated successfully.", updatedOrder });
   } catch (error) {
     console.error("Order status update error:", error);
-    return res
-      .status(500)
-      .json({ error: "Failed to update order status", details: error });
+    return res.status(500).json({
+      error: "Failed to update order status",
+      details: error,
+    });
   }
 };
 ////////////////////////////////////////////////////////////////////////////////////////////
-//get all orders for admin
 export const getAllOrders = async (req: Request, res: Response) => {
   console.log("order_getall");
   try {
     const { status } = req.query;
     const statuses = typeof status === "string" ? status.split(",") : [];
     const statusFilter = statuses.length > 0 ? { status: { in: statuses } } : {};
+
     const searchQuery = req.query.search as string | undefined;
-    const page = Number(req.query.page) || 1;
-    const pageSize = Number(req.query.pageSize) || 10;
-    const offset = (page - 1) * pageSize;
+
+    // Validate and default page and pageSize
+    const page = Math.max(Number(req.query.page) || 1, 1); // Default to 1 and ensure >= 1
+    const pageSize = Math.max(Number(req.query.pageSize) || 0, 0) || undefined; // Default to undefined if 0 or invalid
+    const offset = pageSize ? (page - 1) * pageSize : undefined;
 
     // สร้าง searchFilter
     const searchFilter =
       typeof searchQuery === "string" && searchQuery.trim().length > 0
         ? {
             OR: [
-              { id: parseInt(searchQuery) || undefined }, // ค้นหา orderId
-              { userId: parseInt(searchQuery) || undefined }, // ค้นหา userId
+              { id: isNaN(parseInt(searchQuery)) ? undefined : parseInt(searchQuery) }, // ค้นหา orderId
+              { userId: isNaN(parseInt(searchQuery)) ? undefined : parseInt(searchQuery) }, // ค้นหา userId
               { items: { some: { productName: { contains: searchQuery } } } }, // ค้นหา productName ใน items
             ].filter(Boolean),
           }
@@ -133,14 +136,14 @@ export const getAllOrders = async (req: Request, res: Response) => {
       where: combinedFilter,
     });
 
-    const totalPages = Math.ceil(totalOrders / pageSize);
+    const totalPages = pageSize ? Math.ceil(totalOrders / pageSize) : 1;
 
     // ส่งข้อมูลคำสั่งซื้อกลับ
     return res.status(200).json({
       orders,
       pagination: {
         page,
-        pageSize,
+        pageSize: pageSize || totalOrders, // ถ้า pageSize เป็น undefined แสดงจำนวนทั้งหมด
         totalOrders,
         totalPages,
       },
@@ -150,6 +153,7 @@ export const getAllOrders = async (req: Request, res: Response) => {
     return res.status(500).json({ message: "Failed to fetch orders", error });
   }
 };
+
 
 //////////////////////////////////////////////////////////////////////////////////////////
 //get own orders
