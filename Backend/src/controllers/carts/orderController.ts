@@ -307,10 +307,11 @@ export const getOrderForCharts = async (req: Request, res: Response) => {
   try {
     // รับค่า query
     const interval = (req.query.interval as string) || 'monthly';
-    const startDate = req.query.startDate ? new Date(req.query.startDate as string) : new Date('2025-01-01');
-    const endDate = req.query.endDate ? new Date(req.query.endDate as string) : new Date('2025-12-31');
+    let startDate = req.query.startDate ? new Date(req.query.startDate as string) : new Date();
+    let endDate = req.query.endDate ? new Date(req.query.endDate as string) : new Date();
 
-    // ดึงข้อมูลทั้งหมดจาก Prisma
+ const now = new Date();
+
     const orders = await prisma.order.findMany({
       where: {
         createdAt: {
@@ -322,6 +323,30 @@ export const getOrderForCharts = async (req: Request, res: Response) => {
         createdAt: 'asc',
       },
     });
+    let expectedData: { [key: string]: number } = {};
+
+    if (interval === 'monthly') {
+      const startMonth = startDate.getMonth();
+      const startYear = startDate.getFullYear();
+      
+      for (let i = 0; i < 12; i++) {
+        const month = (startMonth + i) % 12 + 1; // คำนวณเดือนให้เป็น 1-12 เสมอ
+        const year = startYear + Math.floor((startMonth + i) / 12); // ถ้าเดือนเกิน 12 ต้องเปลี่ยนปี
+        const monthLabel = `${month}/${year}`;
+        expectedData[monthLabel] = 0;
+      }
+    }
+    else if (interval === 'weekly') {
+      let currentDate = new Date(startDate); 
+      const end = new Date(endDate); 
+      while (currentDate <= end) {
+        const weekLabel = `${currentDate.getDate()}/${currentDate.getMonth() + 1}/${currentDate.getFullYear()}`; // เก็บรูปแบบ "วัน/เดือน/ปี"
+        expectedData[weekLabel] = 0;
+    
+        // เพิ่มทีละ 7 วัน เพื่อไปสัปดาห์ถัดไป
+        currentDate.setDate(currentDate.getDate() + 7);
+      }
+    }
 
     // จัดกลุ่มข้อมูลด้วย JavaScript
     const groupedData = orders.reduce((acc: any, order) => {

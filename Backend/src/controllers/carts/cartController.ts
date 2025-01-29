@@ -183,7 +183,7 @@ try {
 }
 }
 
-//checkout
+//checkout///////////////////////////////////////////////////////////////////////////////////////////////
 export const checkout = async (req: Request, res: Response) => {
   console.log("cart_checkout");
   try {
@@ -212,7 +212,7 @@ export const checkout = async (req: Request, res: Response) => {
     // Create orderItems from cartItems
     const orderItems = await Promise.all(
       cartItems.map(async (item) => {
-        if (!item.productId) {
+        if (!item.productId || item.productId <= 0) {
           throw new Error(`Cart item with invalid productId: ${item.productId}`);
         }
         
