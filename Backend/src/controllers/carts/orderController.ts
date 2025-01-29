@@ -16,12 +16,10 @@ export const updateOrderStatusByUser = async (req: Request, res: Response) => {
       "order_cancelled",
     ];
     if (!validStatuses.includes(status)) {
-      return res
-        .status(400)
-        .json({
-          message:
-            "Invalid status. Valid statuses areeee: pending, confirmed, cancelled.",
-        });
+      return res.status(400).json({
+        message:
+          "Invalid status. Valid statuses areeee: pending, confirmed, cancelled.",
+      });
     }
     const existingOrder = await prisma.order.findUnique({
       where: { id: Number(orderId) },
@@ -59,13 +57,15 @@ export const updateOrderStatusByAdmin = async (req: Request, res: Response) => {
       "order_rejected",
       "order_cancelled",
     ];
-    
+
     if (!validStatuses.includes(status)) {
       return res.status(400).json({
-        message: `Invalid status. Valid statuses are: ${validStatuses.join(", ")}.`,
+        message: `Invalid status. Valid statuses are: ${validStatuses.join(
+          ", "
+        )}.`,
       });
     }
-    
+
     const existingOrder = await prisma.order.findUnique({
       where: { id: Number(orderId) },
     });
@@ -77,7 +77,7 @@ export const updateOrderStatusByAdmin = async (req: Request, res: Response) => {
       where: { id: Number(orderId) },
       data: { status },
     });
-    console.log(`Updated order Id:${orderId} status: ${status} ` )
+    console.log(`Updated order Id:${orderId} status: ${status} `);
     return res
       .status(200)
       .json({ message: "Order status updated successfully.", updatedOrder });
@@ -95,7 +95,8 @@ export const getAllOrders = async (req: Request, res: Response) => {
   try {
     const { status } = req.query;
     const statuses = typeof status === "string" ? status.split(",") : [];
-    const statusFilter = statuses.length > 0 ? { status: { in: statuses } } : {};
+    const statusFilter =
+      statuses.length > 0 ? { status: { in: statuses } } : {};
 
     const searchQuery = req.query.search as string | undefined;
 
@@ -109,8 +110,16 @@ export const getAllOrders = async (req: Request, res: Response) => {
       typeof searchQuery === "string" && searchQuery.trim().length > 0
         ? {
             OR: [
-              { id: isNaN(parseInt(searchQuery)) ? undefined : parseInt(searchQuery) }, // ค้นหา orderId
-              { userId: isNaN(parseInt(searchQuery)) ? undefined : parseInt(searchQuery) }, // ค้นหา userId
+              {
+                id: isNaN(parseInt(searchQuery))
+                  ? undefined
+                  : parseInt(searchQuery),
+              }, // ค้นหา orderId
+              {
+                userId: isNaN(parseInt(searchQuery))
+                  ? undefined
+                  : parseInt(searchQuery),
+              }, // ค้นหา userId
               { items: { some: { productName: { contains: searchQuery } } } }, // ค้นหา productName ใน items
             ].filter(Boolean),
           }
@@ -153,7 +162,6 @@ export const getAllOrders = async (req: Request, res: Response) => {
   }
 };
 
-
 //////////////////////////////////////////////////////////////////////////////////////////
 //get own orders
 export const getmyOrder = async (req: Request, res: Response) => {
@@ -172,12 +180,10 @@ export const getmyOrder = async (req: Request, res: Response) => {
       "order_cancelled",
     ];
     if (!validStatuses.includes(status)) {
-      return res
-        .status(400)
-        .json({
-          message:
-            "Invalid status. Valid statuses are: pending, confirmed, cancelled.",
-        });
+      return res.status(400).json({
+        message:
+          "Invalid status. Valid statuses are: pending, confirmed, cancelled.",
+      });
     }
 
     const orders = await prisma.order.findMany({
@@ -210,7 +216,9 @@ export const getOrderById = async (req: Request, res: Response) => {
     return res.status(200).json(order);
   } catch (error) {
     console.error("Error in getOrderById:", error);
-    return res.status(500).json({ message: "Failed to get order by Id", error });
+    return res
+      .status(500)
+      .json({ message: "Failed to get order by Id", error });
   }
 };
 ///////////////////////////////////////////////////////////////////////////////////
@@ -300,18 +308,60 @@ export const updateOrderAddress = async (req: Request, res: Response) => {
     });
   }
 };
-//////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////////////////////////
 export const getOrderForCharts = async (req: Request, res: Response) => {
   console.log("order_getForCharts");
 
   try {
-    // รับค่า query
-    const interval = (req.query.interval as string) || 'monthly';
-    let startDate = req.query.startDate ? new Date(req.query.startDate as string) : new Date();
-    let endDate = req.query.endDate ? new Date(req.query.endDate as string) : new Date();
+    const interval = (req.query.interval as string) || "monthly";
+    const isCorrectInterval = ["weekly", "monthly", "daily"].includes(interval);
+    if (!isCorrectInterval) {
+      return res.status(400).json({
+        message:
+          "Invalid interval. Valid intervals are: weekly, monthly, daily.",
+      });
+    }
 
- const now = new Date();
+    let startDate = req.query.startDate
+      ? new Date(req.query.startDate as string)
+      : new Date();
+    let endDate = req.query.endDate
+      ? new Date(req.query.endDate as string)
+      : new Date();
 
+    const checkDateLength = (
+      startDate: Date,
+      endDate: Date,
+      interval: string
+    ) => {
+      const maxEndDate = new Date(startDate);
+
+      if (interval === "monthly") {
+        maxEndDate.setFullYear(maxEndDate.getFullYear() + 2); // จำกัดไม่ให้เกิน 2 ปี
+      } else if (interval === "weekly") {
+        maxEndDate.setMonth(maxEndDate.getMonth() + 6); // จำกัดไม่ให้เกิน 6 เดือน
+      } else if (interval === "daily") {
+        maxEndDate.setMonth(maxEndDate.getMonth() + 1); // จำกัดไม่ให้เกิน 1 เดือน
+      }
+      return endDate > maxEndDate ? false : true;
+    };
+    const isValidEndDate = checkDateLength(startDate, endDate, interval);
+
+    if (!isValidEndDate) {
+      return res.status(400).json({
+        message: `Invalid date range: The selected end date exceeds the allowed limit for ${interval}.`,
+      });
+    }
+    if (endDate < startDate) {
+      return res
+        .status(400)
+        .json({
+          message: "Invalid date range: Start date must be before end date.",
+        });
+    }
+
+    const now = new Date();
+    //fetchnormalorders
     const orders = await prisma.order.findMany({
       where: {
         createdAt: {
@@ -320,67 +370,104 @@ export const getOrderForCharts = async (req: Request, res: Response) => {
         },
       },
       orderBy: {
-        createdAt: 'asc',
+        createdAt: "asc",
       },
     });
-    let expectedData: { [key: string]: number } = {};
 
-    if (interval === 'monthly') {
-      const startMonth = startDate.getMonth();
-      const startYear = startDate.getFullYear();
-      
+    //make label empty data for grapth
+    let expectedData: { 
+      [key: string]: { 
+        label: string; 
+        totalOrders: number;
+        pending: number; 
+        success: number;
+        rejected: number;
+      }; 
+    } = {};
+
+    // ✅ จัดเตรียมข้อมูลล่วงหน้าตามช่วงเวลาที่เลือก
+    if (interval === "monthly") {
       for (let i = 0; i < 12; i++) {
-        const month = (startMonth + i) % 12 + 1; // คำนวณเดือนให้เป็น 1-12 เสมอ
-        const year = startYear + Math.floor((startMonth + i) / 12); // ถ้าเดือนเกิน 12 ต้องเปลี่ยนปี
-        const monthLabel = `${month}/${year}`;
-        expectedData[monthLabel] = 0;
+        const date = new Date(startDate);
+        date.setMonth(date.getMonth() + i);
+        const label = `${date.getMonth() + 1}/${date.getFullYear()}`;
+        expectedData[label] = {
+          label,
+          totalOrders: 0,
+          pending: 0,
+          success: 0,
+          rejected: 0,
+        };
       }
-    }
-    else if (interval === 'weekly') {
-      let currentDate = new Date(startDate); 
-      const end = new Date(endDate); 
-      while (currentDate <= end) {
-        const weekLabel = `${currentDate.getDate()}/${currentDate.getMonth() + 1}/${currentDate.getFullYear()}`; // เก็บรูปแบบ "วัน/เดือน/ปี"
-        expectedData[weekLabel] = 0;
-    
-        // เพิ่มทีละ 7 วัน เพื่อไปสัปดาห์ถัดไป
+    } else if (interval === "weekly") {
+      let currentDate = new Date(startDate);
+      while (currentDate <= endDate) {
+        const label = `Week ${Math.ceil(currentDate.getDate() / 7)} (${
+          currentDate.getMonth() + 1
+        }/${currentDate.getFullYear()})`;
+        expectedData[label] = {
+          label,
+          totalOrders: 0,
+          pending: 0,
+          success: 0,
+          rejected: 0,
+        };
         currentDate.setDate(currentDate.getDate() + 7);
       }
+    } else if (interval === "daily") {
+      let currentDate = new Date(startDate);
+      while (currentDate <= endDate) {
+        const label = currentDate.toISOString().split("T")[0]; // YYYY-MM-DD
+        expectedData[label] = {
+          label,
+          totalOrders: 0,
+          pending: 0,
+          success: 0,
+          rejected: 0,
+        };
+        currentDate.setDate(currentDate.getDate() + 1);
+      }
     }
 
-    // จัดกลุ่มข้อมูลด้วย JavaScript
-    const groupedData = orders.reduce((acc: any, order) => {
+    const groupedData = orders.reduce((acc, order) => {
       const date = new Date(order.createdAt);
 
-      let label;
-      switch (interval) {
-        case 'daily':
-          label = date.toISOString().split('T')[0]; // YYYY-MM-DD
-          break;
-        case 'weekly':
-          label = `Week ${Math.ceil(date.getDate() / 7)} (${date.getMonth() + 1}/${date.getFullYear()})`;
-          break;
-        case 'monthly':
-          label = `${date.getMonth() + 1}/${date.getFullYear()}`; // MM/YYYY
-          break;
-        default:
-          label = date.toISOString().split('T')[0];
-      }
+      const label =
+        interval === "daily"
+          ? date.toISOString().split("T")[0] 
+          : interval === "weekly"
+          ? `Week ${Math.ceil(date.getDate() / 7)} (${
+              date.getMonth() + 1
+            }/${date.getFullYear()})`
+          : `${date.getMonth() + 1}/${date.getFullYear()}`; // Monthly
 
       if (!acc[label]) {
-        acc[label] = { label, totalOrders: 0 };
+        acc[label] = { ...expectedData[label] };
       }
       acc[label].totalOrders += 1;
+
+if(["awaiting_slip_upload","awaiting_confirmation","awaiting_rejection"].includes(order.status)) {
+  acc[label].pending = (acc[label].pending as number) + 1;
+} else if (order.status === "order_approved") {
+  acc[label].success = (acc[label].success as number) + 1;
+}else if (["order_rejected","order_cancelled"].includes(order.status)) {
+  acc[label].rejected = (acc[label].rejected as number) + 1;
+}
+
       return acc;
-    }, {});
+    }, expectedData);
 
-    // แปลงข้อมูลให้อยู่ในรูปแบบ array
-    const result = Object.values(groupedData);
-
+    // แปลงข้อมูลให้อยู่ในรูปแบบ array และเรียงตามเวลา
+    const result = Object.entries(groupedData)
+      .map(([label, totalOrders]) => ({ label, totalOrders }))
+      .sort(
+        (a, b) => new Date(a.label).getTime() - new Date(b.label).getTime()
+      );
     return res.status(200).json(result);
   } catch (error) {
     console.error("Error fetching orders:", error);
-    return res.status(500).json({ message: "Failed to fetch orders Charts data", error });
+    return res
+      .status(500)
+      .json({ message: "Failed to fetch orders Charts data", error });
   }
 };
-
