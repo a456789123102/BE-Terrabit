@@ -329,39 +329,27 @@ export const getOrderForCharts = async (req: Request, res: Response) => {
       ? new Date(req.query.endDate as string)
       : new Date();
 
-    const checkDateLength = (
-      startDate: Date,
-      endDate: Date,
-      interval: string
-    ) => {
+    const checkDateLength = (startDate: Date, endDate: Date, interval: string) => {
       const maxEndDate = new Date(startDate);
-
-      if (interval === "monthly") {
-        maxEndDate.setFullYear(maxEndDate.getFullYear() + 2); // จำกัดไม่ให้เกิน 2 ปี
-      } else if (interval === "weekly") {
-        maxEndDate.setMonth(maxEndDate.getMonth() + 6); // จำกัดไม่ให้เกิน 6 เดือน
-      } else if (interval === "daily") {
-        maxEndDate.setMonth(maxEndDate.getMonth() + 1); // จำกัดไม่ให้เกิน 1 เดือน
-      }
-      return endDate > maxEndDate ? false : true;
+      if (interval === "monthly") maxEndDate.setFullYear(maxEndDate.getFullYear() + 2);
+      else if (interval === "weekly") maxEndDate.setMonth(maxEndDate.getMonth() + 6);
+      else if (interval === "daily") maxEndDate.setMonth(maxEndDate.getMonth() + 1);
+      return endDate <= maxEndDate;
     };
-    const isValidEndDate = checkDateLength(startDate, endDate, interval);
 
-    if (!isValidEndDate) {
+    if (!checkDateLength(startDate, endDate, interval)) {
       return res.status(400).json({
         message: `Invalid date range: The selected end date exceeds the allowed limit for ${interval}.`,
       });
     }
+
     if (endDate < startDate) {
-      return res
-        .status(400)
-        .json({
-          message: "Invalid date range: Start date must be before end date.",
-        });
+      return res.status(400).json({
+        message: "Invalid date range: Start date must be before end date.",
+      });
     }
 
-    const now = new Date();
-    //fetchnormalorders
+    // ดึงข้อมูลคำสั่งซื้อ
     const orders = await prisma.order.findMany({
       where: {
         createdAt: {
@@ -374,7 +362,7 @@ export const getOrderForCharts = async (req: Request, res: Response) => {
       },
     });
 
-    //make label empty data for grapth
+    // สร้าง expectedData สำหรับกราฟ
     let expectedData: { 
       [key: string]: { 
         label: string; 
@@ -385,89 +373,78 @@ export const getOrderForCharts = async (req: Request, res: Response) => {
       }; 
     } = {};
 
-    // ✅ จัดเตรียมข้อมูลล่วงหน้าตามช่วงเวลาที่เลือก
     if (interval === "monthly") {
-      for (let i = 0; i < 12; i++) {
-        const date = new Date(startDate);
-        date.setMonth(date.getMonth() + i);
-        const label = `${date.getMonth() + 1}/${date.getFullYear()}`;
-        expectedData[label] = {
-          label,
-          totalOrders: 0,
-          pending: 0,
-          success: 0,
-          rejected: 0,
-        };
+      let date = new Date(startDate);
+      while (date <= endDate) {
+        const label = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-01`;
+        expectedData[label] = { label, totalOrders: 0, pending: 0, success: 0, rejected: 0 };
+        date.setMonth(date.getMonth() + 1);
       }
     } else if (interval === "weekly") {
       let currentDate = new Date(startDate);
       while (currentDate <= endDate) {
-        const label = `Week ${Math.ceil(currentDate.getDate() / 7)} (${
-          currentDate.getMonth() + 1
-        }/${currentDate.getFullYear()})`;
-        expectedData[label] = {
-          label,
-          totalOrders: 0,
-          pending: 0,
-          success: 0,
-          rejected: 0,
-        };
+        const label = `Week ${Math.ceil(currentDate.getDate() / 7)} (${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, "0")})`;
+        expectedData[label] = { label, totalOrders: 0, pending: 0, success: 0, rejected: 0 };
         currentDate.setDate(currentDate.getDate() + 7);
       }
     } else if (interval === "daily") {
       let currentDate = new Date(startDate);
       while (currentDate <= endDate) {
         const label = currentDate.toISOString().split("T")[0]; // YYYY-MM-DD
-        expectedData[label] = {
-          label,
-          totalOrders: 0,
-          pending: 0,
-          success: 0,
-          rejected: 0,
-        };
+        expectedData[label] = { label, totalOrders: 0, pending: 0, success: 0, rejected: 0 };
         currentDate.setDate(currentDate.getDate() + 1);
       }
     }
 
+    // จัดกลุ่มข้อมูลจาก `orders`
     const groupedData = orders.reduce((acc, order) => {
       const date = new Date(order.createdAt);
-
       const label =
         interval === "daily"
           ? date.toISOString().split("T")[0] 
           : interval === "weekly"
-          ? `Week ${Math.ceil(date.getDate() / 7)} (${
-              date.getMonth() + 1
-            }/${date.getFullYear()})`
-          : `${date.getMonth() + 1}/${date.getFullYear()}`; // Monthly
+          ? `Week ${Math.ceil(date.getDate() / 7)} (${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")})`
+          : `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-01`;
 
       if (!acc[label]) {
         acc[label] = { ...expectedData[label] };
       }
+      
       acc[label].totalOrders += 1;
 
-if(["awaiting_slip_upload","awaiting_confirmation","awaiting_rejection"].includes(order.status)) {
-  acc[label].pending = (acc[label].pending as number) + 1;
-} else if (order.status === "order_approved") {
-  acc[label].success = (acc[label].success as number) + 1;
-}else if (["order_rejected","order_cancelled"].includes(order.status)) {
-  acc[label].rejected = (acc[label].rejected as number) + 1;
-}
+      if (["awaiting_slip_upload", "awaiting_confirmation", "awaiting_rejection"].includes(order.status)) {
+        acc[label].pending += 1;
+      } else if (order.status === "order_approved") {
+        acc[label].success += 1;
+      } else if (["order_rejected", "order_cancelled"].includes(order.status)) {
+        acc[label].rejected += 1;
+      }
 
       return acc;
-    }, expectedData);
+    }, { ...expectedData });
 
-    // แปลงข้อมูลให้อยู่ในรูปแบบ array และเรียงตามเวลา
-    const result = Object.entries(groupedData)
-      .map(([label, totalOrders]) => ({ label, totalOrders }))
-      .sort(
-        (a, b) => new Date(a.label).getTime() - new Date(b.label).getTime()
-      );
-    return res.status(200).json(result);
+// แปลง `groupedData` เป็น `result` และเรียงตามลำดับเวลา
+const result = Object.values(groupedData).sort(
+  (a, b) => a.label.localeCompare(b.label)
+);
+
+if (result.length > 0) {
+  const startDateObj = new Date(startDate);
+  const expectedStartLabel =
+    interval === "daily"
+      ? startDateObj.toISOString().split("T")[0]
+      : interval === "weekly"
+      ? `Week ${Math.ceil(startDateObj.getDate() / 7)} (${startDateObj.getFullYear()}-${String(startDateObj.getMonth() + 1).padStart(2, "0")})`
+      : `${startDateObj.getFullYear()}-${String(startDateObj.getMonth() + 1).padStart(2, "0")}-${String(startDateObj.getDate()).padStart(2, "0")}`; // เปลี่ยนให้ตรงกับ `startDate`
+
+  // ✅ เปลี่ยน `result[0].label` ให้ตรงกับ `expectedStartLabel`
+  result[0] = { ...result[0], label: expectedStartLabel };
+}
+
+return res.status(200).json(result);
+
   } catch (error) {
     console.error("Error fetching orders:", error);
-    return res
-      .status(500)
-      .json({ message: "Failed to fetch orders Charts data", error });
+    return res.status(500).json({ message: "Failed to fetch orders Charts data", error });
   }
 };
