@@ -448,3 +448,206 @@ return res.status(200).json(result);
     return res.status(500).json({ message: "Failed to fetch orders Charts data", error });
   }
 };
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+export const getTotalIncomesForCharts = async (req: Request, res: Response) => {
+  console.log("order_getIncomeCharts");
+
+  try {
+    const interval = (req.query.interval as string) || "monthly";
+    const isCorrectInterval = ["weekly", "monthly", "daily"].includes(interval);
+    if (!isCorrectInterval) {
+      return res.status(400).json({
+        message:
+          "Invalid interval. Valid intervals are: weekly, monthly, daily.",
+      });
+    }
+
+    let startDate = req.query.startDate
+      ? new Date(req.query.startDate as string)
+      : new Date();
+    let endDate = req.query.endDate
+      ? new Date(req.query.endDate as string)
+      : new Date();
+
+    const checkDateLength = (startDate: Date, endDate: Date, interval: string) => {
+      const maxEndDate = new Date(startDate);
+      if (interval === "monthly") maxEndDate.setFullYear(maxEndDate.getFullYear() + 2);
+      else if (interval === "weekly") maxEndDate.setMonth(maxEndDate.getMonth() + 6);
+      else if (interval === "daily") maxEndDate.setMonth(maxEndDate.getMonth() + 1);
+      return endDate <= maxEndDate;
+    };
+
+    if (!checkDateLength(startDate, endDate, interval)) {
+      return res.status(400).json({
+        message: `Invalid date range: The selected end date exceeds the allowed limit for ${interval}.`,
+      });
+    }
+
+    if (endDate < startDate) {
+      return res.status(400).json({
+        message: "Invalid date range: Start date must be before end date.",
+      });
+    }
+
+    // ดึงข้อมูลคำสั่งซื้อ
+    const orders = await prisma.order.findMany({
+      where: {
+        createdAt: {
+          gte: startDate,
+          lte: endDate,
+          
+        },
+        status:"order_approved",
+      },
+      orderBy: {
+        createdAt: "asc",
+      },
+      
+    });
+
+    // สร้าง expectedData สำหรับกราฟ
+    let expectedData: { 
+      [key: string]: { 
+        label: string; 
+        total: number;
+      }; 
+    } = {};
+
+    if (interval === "monthly") {
+      let date = new Date(startDate);
+      while (date <= endDate) {
+        const label = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-01`;
+        expectedData[label] = { label, total: 0};
+        date.setMonth(date.getMonth() + 1);
+      }
+    } else if (interval === "weekly") {
+      let currentDate = new Date(startDate);
+      while (currentDate <= endDate) {
+        const label = `Week ${Math.ceil(currentDate.getDate() / 7)} (${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, "0")})`;
+        expectedData[label] = { label, total: 0};
+        currentDate.setDate(currentDate.getDate() + 7);
+      }
+    } else if (interval === "daily") {
+      let currentDate = new Date(startDate);
+      while (currentDate <= endDate) {
+        const label = currentDate.toISOString().split("T")[0]; // YYYY-MM-DD
+        expectedData[label] = { label, total: 0};
+        currentDate.setDate(currentDate.getDate() + 1);
+      }
+    }
+
+    // จัดกลุ่มข้อมูลจาก `orders`
+    const groupedData = orders.reduce((acc, order) => {
+      const date = new Date(order.createdAt);
+      const label =
+        interval === "daily"
+          ? date.toISOString().split("T")[0] 
+          : interval === "weekly"
+          ? `Week ${Math.ceil(date.getDate() / 7)} (${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")})`
+          : `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-01`;
+
+      if (!acc[label]) {
+        acc[label] = { ...expectedData[label] };
+      }
+      acc[label].total += order.totalPrice || 0;
+      return acc;
+    }, { ...expectedData });
+
+// แปลง `groupedData` เป็น `result` และเรียงตามลำดับเวลา
+const result = Object.values(groupedData).sort(
+  (a, b) => a.label.localeCompare(b.label)
+);
+
+if (result.length > 0) {
+  const startDateObj = new Date(startDate);
+  const expectedStartLabel =
+    interval === "daily"
+      ? startDateObj.toISOString().split("T")[0]
+      : interval === "weekly"
+      ? `Week ${Math.ceil(startDateObj.getDate() / 7)} (${startDateObj.getFullYear()}-${String(startDateObj.getMonth() + 1).padStart(2, "0")})`
+      : `${startDateObj.getFullYear()}-${String(startDateObj.getMonth() + 1).padStart(2, "0")}-${String(startDateObj.getDate()).padStart(2, "0")}`;
+  result[0] = { ...result[0], label: expectedStartLabel };
+}
+const TotalIncomes = result.reduce((acc, cur) => acc + cur.total, 0);
+return res.status(200).json({
+  totalIncomes: TotalIncomes,
+  data: result,
+});
+
+
+  } catch (error) {
+    console.error("Error fetching orders:", error);
+    return res.status(500).json({ message: "Failed to fetch orders Charts data", error });
+  }
+};
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+export const getTopSellerItems = async (req: Request, res: Response) => {
+  console.log("order_getTopSeller");
+
+  try {
+    const interval = (req.query.interval as string) || "monthly";
+    const length = Number(req.query.length)|| 10;
+    const isCorrectInterval = ["weekly", "monthly", "daily"].includes(interval);
+    if (!isCorrectInterval) {
+      return res.status(400).json({
+        message:
+          "Invalid interval. Valid intervals are: weekly, monthly, daily.",
+      });
+    }
+
+    let startDate = req.query.startDate
+      ? new Date(req.query.startDate as string)
+      : new Date();
+    let endDate = req.query.endDate
+      ? new Date(req.query.endDate as string)
+      : new Date();
+
+    const checkDateLength = (startDate: Date, endDate: Date, interval: string) => {
+      const maxEndDate = new Date(startDate);
+      if (interval === "monthly") maxEndDate.setFullYear(maxEndDate.getFullYear() + 2);
+      else if (interval === "weekly") maxEndDate.setMonth(maxEndDate.getMonth() + 6);
+      else if (interval === "daily") maxEndDate.setMonth(maxEndDate.getMonth() + 1);
+      return endDate <= maxEndDate;
+    };
+
+    if (!checkDateLength(startDate, endDate, interval)) {
+      return res.status(400).json({
+        message: `Invalid date range: The selected end date exceeds the allowed limit for ${interval}.`,
+      });
+    }
+
+    if (endDate < startDate) {
+      return res.status(400).json({
+        message: "Invalid date range: Start date must be before end date.",
+      });
+    }
+
+    const topSellerItems = await prisma.orderItem.groupBy({
+      by: ['productId', 'productName'],
+      _sum: {
+        quantity: true, // รวมจำนวนสินค้าที่ขายได้
+        price: true, // รวมยอดขายของสินค้านั้น ๆ
+      },
+      where: {
+        order: {
+          status: "order_approved", // นับเฉพาะออเดอร์ที่ถูกอนุมัติ
+        },
+        createdAt: {
+          gte: startDate,
+          lte: endDate,
+        },
+      },
+      orderBy: {
+        _sum: {
+          quantity: "desc", // เรียงจากสินค้าที่ขายดีที่สุด
+        },
+      },
+      take: length, // ดึง Top 10 สินค้าขายดี
+    });
+    return res.status(200).json(topSellerItems);
+
+  } catch (error) {
+    console.error("Error fetching orders:", error);
+    return res.status(500).json({ message: "Failed to fetch orders Charts data", error });
+  }
+};

@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { updateOrderStatusByUser,getAllOrders,getmyOrder,getOrderById,deleteOrder,updateOrderAddress,updateOrderStatusByAdmin 
-,getOrderForCharts
+,getOrderForCharts,getTotalIncomesForCharts,getTopSellerItems
 } from "../../controllers/carts/orderController";
 import { verifyUser, verifyAdmin } from "../../middlewares/verify";
 
@@ -14,5 +14,7 @@ router.delete("/:orderId/delete", verifyUser, deleteOrder);
 router.get("/all", verifyAdmin, getAllOrders);
 router.patch("/update/:orderId", verifyUser, updateOrderAddress);
 router.get("/charts/getOrderForCharts", verifyAdmin, getOrderForCharts);
+router.get("/charts/getTotalIncomesForCharts", verifyAdmin, getTotalIncomesForCharts);
+router.get("/charts/getTopSellerItems", verifyAdmin, getTopSellerItems);
 
 export default router;
