@@ -5,7 +5,7 @@ import { error } from "console";
 
 const prisma = new PrismaClient();
 //User?
-export type CustomRequest = Request & { user: { id: number, isAdmin: boolean} };
+export type CustomRequest = Request & { user: { id: number, userName:string, isAdmin: boolean} };
 
 
 
@@ -36,12 +36,11 @@ export const verifyAdmin = async (req: Request, res: Response, next: NextFunctio
       if (!user) {
         return res.status(404).send({ message: "User not found" });
       }
-  
       if (!user.isAdmin) {
         return res.status(403).send({ message: "You do not have Permission to view this data" });
       }
   
-      (req as CustomRequest).user = { id: user.id, isAdmin: user.isAdmin };
+      (req as CustomRequest).user = { id: user.id,userName:user.username, isAdmin: user.isAdmin };
       next();
     } catch (error) {
       console.error(error);

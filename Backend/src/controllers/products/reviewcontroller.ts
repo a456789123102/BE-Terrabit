@@ -31,19 +31,11 @@ export const createReview = async (req: Request, res: Response) => {
             data: {
                 rating,
                 comments,
-                product: {
-                    connect: {
-                        id: productId,
-                    }
-                },
-                user: {
-                    connect: {
-                        id: user.id,
-                    }
-                }
+                productId, // ใช้ productId ตรง ๆ ไม่ต้อง connect
+                userId: user.id, // ใช้ userId ตรง ๆ
+                userName: user.userName, // ✅ แก้ไขตรงนี้ให้เป็น string
             }
         });
-
         return res.status(201).json(review);
     } catch (error) {
         console.error(error);
@@ -101,19 +93,27 @@ export const getReviewsById = async (req: Request, res: Response) => {
             },
             select: {
                 id: true,
+                userName:true,
                 rating: true,
                 comments: true,
                 createdAt: true,
-                
-                user: {
-                    select: {
-                        id: true,
-                        username: true,
-                    },
-                },
             },
         });
-        res.json(reviews);
+        const userFilteredReviews = reviews.map((e) => {
+            const halfName = Math.ceil(e.userName.length / 2);
+        
+            // ✅ ใช้ .map() และตรวจเงื่อนไขให้ถูกต้อง
+            const censoredUserName = e.userName.split('').map((s, i) => 
+                i > halfName ? '*' : s
+            ).join(''); //  แปลงกลับเป็น string
+        
+            return {
+                ...e, //  เก็บค่าข้อมูลอื่น ๆ ของ review ไว้
+                userName: censoredUserName //  เปลี่ยนชื่อผู้ใช้ที่เซ็นเซอร์แล้ว
+            };
+        });
+        
+        res.status(200).json(userFilteredReviews);
     } catch (error) {
         res.status(500).json({ error: "An error occurred while fetching reviews" });
     }

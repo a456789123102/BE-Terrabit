@@ -139,8 +139,10 @@ model Review {
   id        Int      @id @default(autoincrement())
   productId Int
   userId    Int
+  userName String
   rating    Float
   comments  String
+  isPublished Boolean @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now())
 

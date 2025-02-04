@@ -629,9 +629,9 @@ export const getTopSellerItems = async (req: Request, res: Response) => {
         price: true, // รวมยอดขายของสินค้านั้น ๆ
       },
       where: {
-        order: {
-          status: "order_approved", // นับเฉพาะออเดอร์ที่ถูกอนุมัติ
-        },
+         order: {
+           status: "order_approved", // นับเฉพาะออเดอร์ที่ถูกอนุมัติ
+         },
         createdAt: {
           gte: startDate,
           lte: endDate,
@@ -644,7 +644,13 @@ export const getTopSellerItems = async (req: Request, res: Response) => {
       },
       take: length, // ดึง Top 10 สินค้าขายดี
     });
-    return res.status(200).json(topSellerItems);
+
+    const formattedData = topSellerItems.map(item => ({
+      label: item.productName,
+      quantity: item._sum.quantity,
+      total: item._sum.price
+    }));
+    return res.status(200).json(formattedData);
 
   } catch (error) {
     console.error("Error fetching orders:", error);
