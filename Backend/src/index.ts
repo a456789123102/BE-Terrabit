@@ -11,7 +11,7 @@ import productImageRoute from "./routes/product/productImageRoute";
 import careerRoute from "./routes/career/careerRoute";
 import cartRoute from "./routes/cart/cartRoute"
 import slipImageRoute from "./routes/cart/slipImageRoute";
-import orderRoute from "./routes/cart/orderRoute";
+import orderRoute from "./routes/order/orderRoute";
 import dotenv from 'dotenv';
 
 
