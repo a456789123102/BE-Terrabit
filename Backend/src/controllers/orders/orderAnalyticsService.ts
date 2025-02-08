@@ -446,8 +446,10 @@ export const getTopSellerItems = async (req: Request, res: Response) => {
 ////////////////////////////////////////////////////////////////////////////
 export const getWeeklySaleForCharts = async (req: Request, res: Response) => {
   try {
+    console.log("Getting_weekly_sales");
+
     const startDate = new Date();
-    startDate.setDate(startDate.getDate() - 7 * 24); // 6 สัปดาห์ย้อนหลัง
+    startDate.setDate(startDate.getDate() - 7 * 24); 
     startDate.setHours(0, 0, 0, 0);
 
     const endDate = new Date(); // วันนี้
@@ -479,8 +481,7 @@ export const getWeeklySaleForCharts = async (req: Request, res: Response) => {
       },
     });
 
-    //เปลี่ยนเป็น Reports
-
+    // ฟังก์ชันหาหมายเลขสัปดาห์ของปี
     const getWeekNumber = (date: Date): number => {
       const firstDayOfYear = new Date(date.getFullYear(), 0, 1); // 1 ม.ค. ของปีเดียวกัน
       const pastDaysOfYear = Math.floor(
@@ -496,52 +497,75 @@ export const getWeeklySaleForCharts = async (req: Request, res: Response) => {
         totalIncome: number;
       };
     } = {};
+
     let date = new Date(startDate);
     while (date <= endDate) {
       const weekNum = String(getWeekNumber(date)).padStart(2, "0");
-      const label = `${weekNum}-${date.getFullYear()}`;
-      date.setDate(date.getDate() + 1);
+      const label = `${weekNum}-${date.getFullYear()}`; 
+
       if (!expectedData[label]) {
         expectedData[label] = {
-          label: `Week ${label}`,
+          label: `Week ${label}`, 
           totalOrders: 0,
           totalIncome: 0,
         };
       }
-      date.setDate(date.getDate() + 7);
+
+      date.setDate(date.getDate() + 7); 
     }
 
-    const groupedData = weeklySalesData.reduce(
-      (acc, order) => {
-        const date = new Date(order.createdAt);
-        const label = `${String(getWeekNumber(date)).padStart(
-          2,
-          "0"
-        )}-${date.getFullYear()}`;
-        acc[label].totalOrders++;
-        acc[label].totalIncome += order.totalPrice || 0;
-        return acc;
-      },
-      { ...expectedData }
-    );
-    const data = Object.values(groupedData);
-    const totalOrders = totalSalesData._count.id || 0;
-    const LastWowOrders = data.length < 2 ? 0 : data[data.length - 2].totalOrders === 0 
-    ? (data[data.length - 1].totalOrders > 0 ? 1 : 0)  
-    : (data[data.length - 1].totalOrders - data[data.length - 2].totalOrders) / data[data.length - 2].totalOrders; 
+    // จัดกลุ่มข้อมูลตามสัปดาห์
+    const groupedData = weeklySalesData.reduce((acc, order) => {
+      const date = new Date(order.createdAt);
+      const label = `${String(getWeekNumber(date)).padStart(2, "0")}-${date.getFullYear()}`;
 
+      if (!acc[label]) {
+        acc[label] = { ...expectedData[label] };
+      }
+
+      acc[label].totalOrders += 1;
+      acc[label].totalIncome += order.totalPrice || 0;
+
+      return acc;
+    }, { ...expectedData });
+
+    const data = Object.values(groupedData);
+
+    // คำนวณค่าทั้งหมด
+    const totalOrders = totalSalesData._count.id || 0;
+    const lastWowOrders =
+      data.length < 2
+        ? 0
+        : data[data.length - 2].totalOrders === 0
+        ? data[data.length - 1].totalOrders > 0
+          ? 1
+          : 0
+        : (data[data.length - 1].totalOrders - data[data.length - 2].totalOrders) /
+          data[data.length - 2].totalOrders;
 
     const totalIncome = totalSalesData._sum.totalPrice || 0;
-    const LastWowIncomes = data.length < 2 ? 0 : data[data.length - 2].totalIncome === 0 //ถ้า data.length < 2 (มีข้อมูลน้อยกว่า 2 สัปดาห์) → return 0
-    ? (data[data.length - 1].totalIncome > 0 ? 1 : 0)  //ถ้าสัปดาห์ก่อน (prevIncome) เป็น 0: ถ้าสัปดาห์นี้ (lastIncome) > 0 → return 1 (100% Growth) สัปดาห์นี้ก็ 0 → return 0
-    : (data[data.length - 1].totalIncome - data[data.length - 2].totalIncome) / data[data.length - 2].totalIncome; //คิดตามปกติ
+    const lastWowIncomes =
+      data.length < 2
+        ? 0
+        : data[data.length - 2].totalIncome === 0
+        ? data[data.length - 1].totalIncome > 0
+          ? 1
+          : 0
+        : (data[data.length - 1].totalIncome - data[data.length - 2].totalIncome) /
+          data[data.length - 2].totalIncome;
 
-
-    return res.status(200).json({totalOrders:totalOrders,LastWowOrders:LastWowOrders,totalIncome:totalIncome,LastWowIncomes:LastWowIncomes,data:data});
+    return res.status(200).json({
+      totalOrders,
+      lastWowOrders,
+      totalIncome,
+      lastWowIncomes,
+      data,
+    });
   } catch (error) {
     console.error("Error fetching orders:", error);
-    return res
-      .status(500)
-      .json({ message: "Failed to fetch orders Charts data", error });
+    return res.status(500).json({
+      message: "Failed to fetch orders Charts data",
+      error,
+    });
   }
 };
