@@ -31,9 +31,9 @@ export const createReview = async (req: Request, res: Response) => {
             data: {
                 rating,
                 comments,
-                productId, // ใช้ productId ตรง ๆ ไม่ต้อง connect
-                userId: user.id, // ใช้ userId ตรง ๆ
-                userName: user.userName, // ✅ แก้ไขตรงนี้ให้เป็น string
+                productId, 
+                userId: user.id, 
+                userName: user.userName, 
             }
         });
         return res.status(201).json(review);
@@ -81,40 +81,100 @@ return res.status(200).json({ message: 'Review updated successfully', category: 
     }
 }
 
-//get reviewsById
-
+//get reviewsById ///////////////////////////////////////////////////////////////////////
 export const getReviewsById = async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
+        console.log("Product ID:", id);
+
+        // ✅ ปรับ type ของ user เพื่อให้แน่ใจว่าไม่เป็น 'never'
+        const user = (req as CustomRequest).user ?? null;
+        console.log("User:", user);
+
+        if (!user) {
+            console.log("User not found, maybe not logged in yet");
+        }
+
         const productId = parseInt(id);
+        if (isNaN(productId)) {
+            if (!res.headersSent) {
+                return res.status(400).json({ error: "Invalid product ID" });
+            }
+        }
+
         const reviews = await prisma.review.findMany({
             where: {
                 productId: productId,
+                ...(user ? { userId: { not: user.id } } : {}), // ✅ เช็คว่า user.id มีค่าก่อนใช้
             },
             select: {
                 id: true,
-                userName:true,
+                userName: true,
                 rating: true,
                 comments: true,
                 createdAt: true,
             },
+            orderBy: {
+                createdAt: "desc",
+            },
         });
+
         const userFilteredReviews = reviews.map((e) => {
             const halfName = Math.ceil(e.userName.length / 2);
-        
-            // ✅ ใช้ .map() และตรวจเงื่อนไขให้ถูกต้อง
-            const censoredUserName = e.userName.split('').map((s, i) => 
-                i > halfName ? '*' : s
-            ).join(''); //  แปลงกลับเป็น string
-        
-            return {
-                ...e, //  เก็บค่าข้อมูลอื่น ๆ ของ review ไว้
-                userName: censoredUserName //  เปลี่ยนชื่อผู้ใช้ที่เซ็นเซอร์แล้ว
-            };
+            const censoredUserName = e.userName
+                .split("")
+                .map((s, i) => (i > halfName ? "*" : s))
+                .join("");
+            return { ...e, userName: censoredUserName };
         });
-        
-        res.status(200).json(userFilteredReviews);
+
+        let myReviews = null;
+        if (user) {
+            myReviews = await prisma.review.findFirst({
+                where: {
+                    productId: productId,
+                    userId: user.id,
+                },
+                select: {
+                    id: true,
+                    userName: true,
+                    rating: true,
+                    comments: true,
+                    createdAt: true,
+                },
+            });
+        }
+
+        let myReviewPermission = false;
+        if (user) {
+            try {
+                const checkMyReviewPermission = await prisma.orderItem.findFirst({
+                    where: {
+                        productId: productId,
+                        order: {
+                            userId: user.id,
+                            status: "order_approved",
+                        },
+                    },
+                });
+                myReviewPermission = !!checkMyReviewPermission;
+            } catch (err) {
+                console.error("Error checking review permission:", err);
+            }
+        }
+
+        // ✅ ป้องกันการเรียก res.json() ซ้ำ
+        if (!res.headersSent) {
+            return res.status(200).json({
+                reviews: userFilteredReviews,
+                myReviews: myReviews,
+                myReviewPermission: myReviewPermission,
+            });
+        }
     } catch (error) {
-        res.status(500).json({ error: "An error occurred while fetching reviews" });
+        console.error("Error fetching reviews:", error);
+        if (!res.headersSent) {
+            return res.status(500).json({ error: "An error occurred while fetching reviews" });
+        }
     }
 };

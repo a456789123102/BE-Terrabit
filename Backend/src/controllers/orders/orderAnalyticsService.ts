@@ -75,6 +75,14 @@ export const getOrderForCharts = async (req: Request, res: Response) => {
       };
     } = {};
 
+    const getWeekNumber = (date: Date): number => {
+      const firstDayOfYear = new Date(date.getFullYear(), 0, 1); // 1 ม.ค. ของปีเดียวกัน
+      const pastDaysOfYear = Math.floor(
+        (date.getTime() - firstDayOfYear.getTime()) / (1000 * 60 * 60 * 24)
+      );
+      return Math.ceil((pastDaysOfYear + firstDayOfYear.getDay() + 1) / 7);
+    };
+
     if (interval === "monthly") {
       let date = new Date(startDate);
       while (date <= endDate) {
@@ -90,14 +98,12 @@ export const getOrderForCharts = async (req: Request, res: Response) => {
         };
         date.setMonth(date.getMonth() + 1);
       }
-    } else if (interval === "weekly") {
+    }  else if (interval === "weekly") {
       let currentDate = new Date(startDate);
       while (currentDate <= endDate) {
-        const label = `Week ${Math.ceil(
-          currentDate.getDate() / 7
-        )} (${currentDate.getFullYear()}-${String(
-          currentDate.getMonth() + 1
-        ).padStart(2, "0")})`;
+        const weekNumber = getWeekNumber(currentDate);
+        const label = `Week ${weekNumber} (${currentDate.getFullYear()})`;
+    
         expectedData[label] = {
           label,
           totalOrders: 0,
@@ -105,9 +111,11 @@ export const getOrderForCharts = async (req: Request, res: Response) => {
           success: 0,
           rejected: 0,
         };
+    
         currentDate.setDate(currentDate.getDate() + 7);
       }
-    } else if (interval === "daily") {
+    }
+    else if (interval === "daily") {
       let currentDate = new Date(startDate);
       while (currentDate <= endDate) {
         const label = currentDate.toISOString().split("T")[0]; // YYYY-MM-DD
@@ -130,37 +138,33 @@ export const getOrderForCharts = async (req: Request, res: Response) => {
           interval === "daily"
             ? date.toISOString().split("T")[0]
             : interval === "weekly"
-            ? `Week ${Math.ceil(
-                date.getDate() / 7
-              )} (${date.getFullYear()}-${String(date.getMonth() + 1).padStart(
-                2,
-                "0"
-              )})`
-            : `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(
-                2,
-                "0"
-              )}-01`;
+            ? `Week ${getWeekNumber(date)} (${date.getFullYear()})`
+            : `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-01`;
+    
+        if (!acc[label]) {
+          acc[label] = {
+            label,
+            totalOrders: 0,
+            pending: 0,
+            success: 0,
+            rejected: 0,
+          };
+        }
+    
         acc[label].totalOrders += 1;
-        if (
-          [
-            "awaiting_slip_upload",
-            "awaiting_confirmation",
-            "awaiting_rejection",
-          ].includes(order.status)
-        ) {
+        if (["awaiting_slip_upload", "awaiting_confirmation", "awaiting_rejection"].includes(order.status)) {
           acc[label].pending += 1;
         } else if (order.status === "order_approved") {
           acc[label].success += 1;
-        } else if (
-          ["order_rejected", "order_cancelled"].includes(order.status)
-        ) {
+        } else if (["order_rejected", "order_cancelled"].includes(order.status)) {
           acc[label].rejected += 1;
         }
-
+    
         return acc;
       },
       { ...expectedData }
     );
+    
 
     // แปลง `groupedData` เป็น `result` และเรียงตามลำดับเวลา
     const result = Object.values(groupedData); // ✅ แปลง Object เป็น Array โดยไม่ sort
@@ -265,6 +269,14 @@ export const getTotalIncomesForCharts = async (req: Request, res: Response) => {
       };
     } = {};
 
+    const getWeekNumber = (date: Date): number => {
+      const firstDayOfYear = new Date(date.getFullYear(), 0, 1); // 1 ม.ค. ของปีเดียวกัน
+      const pastDaysOfYear = Math.floor(
+        (date.getTime() - firstDayOfYear.getTime()) / (1000 * 60 * 60 * 24)
+      );
+      return Math.ceil((pastDaysOfYear + firstDayOfYear.getDay() + 1) / 7);
+    };
+
     if (interval === "monthly") {
       let date = new Date(startDate);
       while (date <= endDate) {
@@ -274,17 +286,20 @@ export const getTotalIncomesForCharts = async (req: Request, res: Response) => {
         expectedData[label] = { label, total: 0 };
         date.setMonth(date.getMonth() + 1);
       }
-    } else if (interval === "weekly") {
+    }  else if (interval === "weekly") {
       let currentDate = new Date(startDate);
       while (currentDate <= endDate) {
-        const label = `Week ${Math.ceil(
-          currentDate.getDate() / 7
-        )} (${currentDate.getFullYear()}-${String(
-          currentDate.getMonth() + 1
-        ).padStart(2, "0")})`;
-        expectedData[label] = { label, total: 0 };
+        const weekNumber = getWeekNumber(currentDate);
+        const label = `Week ${weekNumber} (${currentDate.getFullYear()})`;
+    
+        expectedData[label] = {
+          label,
+          total: 0,
+    
+        };
         currentDate.setDate(currentDate.getDate() + 7);
       }
+    
     } else if (interval === "daily") {
       let currentDate = new Date(startDate);
       while (currentDate <= endDate) {
@@ -302,12 +317,7 @@ export const getTotalIncomesForCharts = async (req: Request, res: Response) => {
           interval === "daily"
             ? date.toISOString().split("T")[0]
             : interval === "weekly"
-            ? `Week ${Math.ceil(
-                date.getDate() / 7
-              )} (${date.getFullYear()}-${String(date.getMonth() + 1).padStart(
-                2,
-                "0"
-              )})`
+            ? `Week ${getWeekNumber(date)} (${date.getFullYear()})`
             : `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(
                 2,
                 "0"
