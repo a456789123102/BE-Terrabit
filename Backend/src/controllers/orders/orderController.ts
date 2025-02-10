@@ -137,6 +137,9 @@ export const getAllOrders = async (req: Request, res: Response) => {
       take: pageSize,
       where: combinedFilter,
       include: { items: true },
+      orderBy: {
+        createdAt: "desc", // ✅ เรียงออเดอร์ใหม่ -> เก่า
+      },
     });
 
     // นับจำนวนคำสั่งซื้อทั้งหมด
@@ -191,8 +194,14 @@ export const getmyOrder = async (req: Request, res: Response) => {
         userId,
         status,
       },
-      include: { items: true },
+      include: {
+        items: true,
+      },
+      orderBy: {
+        createdAt: "desc", // ✅ เรียงออเดอร์ใหม่ -> เก่า
+      },
     });
+    
 
     // ส่งข้อมูล `orders` โดยตรง
     return res.status(200).json(orders);

@@ -2,7 +2,7 @@ import {createReview,updateReview,getReviewsById} from "../../controllers/produc
 import { Router } from "express"
 import { verifyUser,verifyOptionalUser } from "../../middlewares/verify";
 const router = Router();
-router.get('/view/:id',verifyOptionalUser,getReviewsById);
-router.post('/create/:productId',verifyUser, createReview); 
-router.patch('/edit/:productId',verifyUser, updateReview); 
+router.get('/:id',verifyOptionalUser,getReviewsById);
+router.post('/:productId/create',verifyUser, createReview); 
+router.patch('/:productId/edit',verifyUser, updateReview); 
 export default router;

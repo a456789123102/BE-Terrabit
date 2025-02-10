@@ -5,24 +5,43 @@ import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
 //User?
 export type CustomRequest = Request & {
-  user: { id: number; userName: string; isAdmin: boolean };
+  user: { id: number; userName: string; isAdmin?: boolean };
 };
 
-export const verifyUser = (req: Request, res: Response, next: NextFunction) => {
+export const verifyUser = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
   try {
     const token = req.headers.authorization;
     if (!token) {
-      return res
-        .status(401)
-        .send({ message: "Invalid token in verify process" });
+      return res.status(401).send({ message: "Invalid token in verify process" });
     }
-    const decoded = jwt.verify(token, process.env.JWT_SECRET_KEY!);
-    (req as CustomRequest).user = decoded as any;
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET_KEY!) as {
+      id: number;
+    };
+
+    const user = await prisma.user.findUnique({ where: { id: decoded.id } });
+
+    if (!user) {
+      return res.status(404).send({ message: "User not found" });
+    }
+
+    // ✅ เก็บ user ไว้ใน req แต่ไม่ต้องมี isAdmin
+    (req as CustomRequest).user = {
+      id: user.id,
+      userName: user.username, // ป้องกันการส่งค่า undefined
+    };
+
     next();
   } catch (error) {
-    res.status(500).json({ message: "Error While verifying token", error });
+    console.error("Error while verifying token:", error);
+    res.status(500).json({ message: "Error while verifying token", error });
   }
 };
+
 //Admin?
 export const verifyAdmin = async (
   req: Request,

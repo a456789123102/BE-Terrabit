@@ -6,10 +6,13 @@ const prisma = new PrismaClient();
 
 //create
 export const createReview = async (req: Request, res: Response) => {
+    console.log("Reviewcreate")
     try {
         const { rating, comments } = req.body;
+        console.log("rating: " + rating + " comments: " + comments);
         const productId = parseInt(req.params.productId); 
         const user = (req as CustomRequest).user; 
+console.log("user: ",user)
 
         if (!rating || !comments) {
             return res.status(400).json({ message: 'All fields are required' });
@@ -36,6 +39,7 @@ export const createReview = async (req: Request, res: Response) => {
                 userName: user.userName, 
             }
         });
+        console.log("ReviewcreateD")
         return res.status(201).json(review);
     } catch (error) {
         console.error(error);
