@@ -12,10 +12,14 @@ export const createReview = async (req: Request, res: Response) => {
         console.log("rating: " + rating + " comments: " + comments);
         const productId = parseInt(req.params.productId); 
         const user = (req as CustomRequest).user; 
-console.log("user: ",user)
+
 
         if (!rating || !comments) {
             return res.status(400).json({ message: 'All fields are required' });
+        }
+        const isOver300Words = comments.length > 300;
+        if (isOver300Words) {
+            return res.status(400).json({ message: 'Comments must not exceed 300 words' });
         }
 
         const isAlreadyReview = await prisma.review.findFirst({
@@ -47,7 +51,7 @@ console.log("user: ",user)
     }
 };
 
-//edit reviews
+//edit reviews////////////////////////////////////////////////////////////////
 export const updateReview = async ( req: Request, res:Response) => {
     try {
         const { rating, comments } = req.body;
@@ -90,6 +94,8 @@ export const getReviewsById = async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
         console.log("Product ID:", id);
+        const page = Number(req.query.page) || 1;
+        const pageSize = 5;
 
         // ✅ ปรับ type ของ user เพื่อให้แน่ใจว่าไม่เป็น 'never'
         const user = (req as CustomRequest).user ?? null;
@@ -116,7 +122,7 @@ export const getReviewsById = async (req: Request, res: Response) => {
                 userName: true,
                 rating: true,
                 comments: true,
-                createdAt: true,
+                updatedAt: true,
             },
             orderBy: {
                 createdAt: "desc",
@@ -124,10 +130,10 @@ export const getReviewsById = async (req: Request, res: Response) => {
         });
 
         const userFilteredReviews = reviews.map((e) => {
-            const halfName = Math.ceil(e.userName.length / 2);
+            const len = e.userName.length-1;
             const censoredUserName = e.userName
                 .split("")
-                .map((s, i) => (i > halfName ? "*" : s))
+                .map((s, i) => (i === 0|| i === len  ? s : "*"))
                 .join("");
             return { ...e, userName: censoredUserName };
         });
@@ -144,7 +150,7 @@ export const getReviewsById = async (req: Request, res: Response) => {
                     userName: true,
                     rating: true,
                     comments: true,
-                    createdAt: true,
+                    updatedAt: true,
                 },
             });
         }
@@ -167,12 +173,31 @@ export const getReviewsById = async (req: Request, res: Response) => {
             }
         }
 
-        // ✅ ป้องกันการเรียก res.json() ซ้ำ
+        const totalReviews = await prisma.review.aggregate({
+            where: {
+                productId: productId,
+            },
+            _count: {
+                id: true,
+            },
+            _avg: {
+                rating: true,
+            },
+        });
+        const totalPages = Math.ceil(totalReviews._count.id / pageSize);
+
         if (!res.headersSent) {
             return res.status(200).json({
                 reviews: userFilteredReviews,
+                ratingScore: totalReviews._avg.rating,
                 myReviews: myReviews,
                 myReviewPermission: myReviewPermission,
+                Pagination: {
+                    page,
+                    pageSize,
+                    totalReviews,
+                    totalPages,
+                },
             });
         }
     } catch (error) {
