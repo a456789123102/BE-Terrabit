@@ -57,6 +57,9 @@ export const updateReview = async ( req: Request, res:Response) => {
         const { rating, comments } = req.body;
         const productId = parseInt(req.params.productId); 
         const user = (req as CustomRequest).user; 
+        if(!rating || !comments){
+            return res.status(400).json({ message: 'All fields are required' });
+        }
 
 const existingReview = await prisma.review.findUnique({
     where: {
@@ -96,8 +99,8 @@ export const getReviewsById = async (req: Request, res: Response) => {
         console.log("Product ID:", id);
         const page = Number(req.query.page) || 1;
         const pageSize = 5;
+        const offset = (page - 1) * pageSize;
 
-        // ✅ ปรับ type ของ user เพื่อให้แน่ใจว่าไม่เป็น 'never'
         const user = (req as CustomRequest).user ?? null;
         console.log("User:", user);
 
@@ -115,8 +118,10 @@ export const getReviewsById = async (req: Request, res: Response) => {
         const reviews = await prisma.review.findMany({
             where: {
                 productId: productId,
-                ...(user ? { userId: { not: user.id } } : {}), // ✅ เช็คว่า user.id มีค่าก่อนใช้
+                ...(user ? { userId: { not: user.id } } : {}), 
             },
+            skip:offset,
+            take: pageSize,
             select: {
                 id: true,
                 userName: true,
@@ -189,14 +194,13 @@ export const getReviewsById = async (req: Request, res: Response) => {
         if (!res.headersSent) {
             return res.status(200).json({
                 reviews: userFilteredReviews,
-                ratingScore: totalReviews._avg.rating,
+                ratingScore: totalReviews._avg.rating ? Math.round(totalReviews._avg.rating * 10) / 10 : null,
                 myReviews: myReviews,
                 myReviewPermission: myReviewPermission,
                 Pagination: {
-                    page,
-                    pageSize,
-                    totalReviews,
-                    totalPages,
+                    currentPage:page,
+                    totalPages:totalPages,
+                    totalReviews: totalReviews._count.id,
                 },
             });
         }

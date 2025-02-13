@@ -264,14 +264,6 @@ export const getProductById = async (req: Request, res: Response) => {
           include: { category: true },
         },
         Image: true,
-        // ดึงข้อมูลรูปภาพทั้งหมดที่เกี่ยวข้อง
-        Review: {
-          select: {
-            rating: true,
-            comments: true,
-            user: { select: { username: true } },
-          },
-        },
       },
     });
     console.log("Product Data:", product);
@@ -286,9 +278,6 @@ export const getProductById = async (req: Request, res: Response) => {
     }
 
     // ถ้าไม่มีรีวิว ให้ตั้งเป็น array ว่าง
-    if (!product.Review) {
-      product.Review = [];
-    }
 
     return res.status(200).json(product);
   } catch (error) {

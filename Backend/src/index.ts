@@ -6,7 +6,7 @@ import userRoute from "./routes/users/userRoute";
 import addressRoute from "./routes/address/addressRoute";
 import categoryRoute from "./routes/product/categoryRoute";
 import productRoute from "./routes/product/productRoute";
-import reviewRoute from "./routes/product/reviewRoute";
+import reviewRoute from "./routes/review/reviewRoute";
 import productImageRoute from "./routes/product/productImageRoute";
 import careerRoute from "./routes/career/careerRoute";
 import cartRoute from "./routes/cart/cartRoute"
