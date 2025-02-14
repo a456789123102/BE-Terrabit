@@ -3,7 +3,7 @@ import {getWeeklyRatingForCharts} from "../../controllers/reviews/reviewAnalytic
 import { Router } from "express"
 import { verifyUser,verifyOptionalUser, verifyAdmin } from "../../middlewares/verify";
 const router = Router();
-router.get('/getWeeklyRatingForCharts',verifyAdmin,getWeeklyRatingForCharts);
+router.get('/charts/getWeeklyRatingForCharts',verifyAdmin,getWeeklyRatingForCharts);
 router.get('/:id',verifyOptionalUser,getReviewsById);
 router.post('/:productId/create',verifyUser, createReview); 
 router.patch('/:productId/edit',verifyUser, updateReview); 

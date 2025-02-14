@@ -186,12 +186,23 @@ export const getOrderForCharts = async (req: Request, res: Response) => {
               2,
               "0"
             )}`; // เปลี่ยนให้ตรงกับ `startDate`
-
-      // ✅ เปลี่ยน `result[0].label` ให้ตรงกับ `expectedStartLabel`
       result[0] = { ...result[0], label: expectedStartLabel };
     }
+    const total = ['totalOrders', 'pending', 'success', 'rejected'].reduce<Record<string, number>>((acc, key) => {
+      acc[key] = result.reduce((sum, curr) => sum + (curr as any)[key], 0); // ใช้ `as any` ช่วย TypeScript เข้าใจ
+      return acc;
+    }, {});
+    
+    const ComparativeGrowth = ['totalOrders', 'pending', 'success', 'rejected'].reduce<Record<string, number>>((acc, key) => {
+      const current = (result[result.length - 1] as any)?.[key] || 0;
+      const previous = (result[result.length - 2] as any)?.[key] || 0;
+    
+      acc[key] = previous === 0 ? (current > 0 ? 1 : 0) : (current - previous) / previous;
+      return acc;
+    }, {});
+    
 
-    return res.status(200).json(result);
+    return res.status(200).json({data:result,total,ComparativeGrowth});
   } catch (error) {
     console.error("Error fetching orders:", error);
     return res

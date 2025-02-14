@@ -31,18 +31,14 @@ export const getWeeklyRatingForCharts = async (req: Request, res: Response) => {
 
     const ratingStats = await prisma.review.aggregate({
       where: {
-        createdAt: {
-          gte: startDate,
-          lte: endDate,
-        },
       },
       _avg: {
         rating: true,
       },
+_count:{
+  id: true,
+}
     });
-
-    console.log("Ratings:", ratings);
-    console.log("Average Rating:", ratingStats._avg.rating);
 
     const getWeekNumber = (date: Date): number => {
       const firstDayOfYear = new Date(date.getFullYear(), 0, 1);
@@ -88,8 +84,31 @@ const data = Object.values(groupedData).map((e) => ({
     ...e, 
     averageRating: e.totalUserRatings > 0 ? e.averageRating / e.totalUserRatings : 0,
   }));
+
+  const totalReviewer = ratingStats._count.id || 0;
+  const totalRating = ratingStats._avg.rating || 0;
+
+  let lastWowReviewer = 0; 
+  const prevTotalReviewer = data[data.length - 2].totalUserRatings;
+  const currentTotalReviewer = data[data.length - 1].totalUserRatings;
+  if (prevTotalReviewer !== 0) {
+      lastWowReviewer = (currentTotalReviewer - prevTotalReviewer) / prevTotalReviewer;
+  } else {
+      lastWowReviewer = currentTotalReviewer> 0 ? 1 : 0; 
+  }
   
-  return res.status(200).json(data);
+
+  
+   let lastWowRatings = 0;
+   const prevTotalRatings = data[data.length - 2].averageRating;
+   const currentTotalRatings = data[data.length - 1].averageRating;
+   if(prevTotalRatings !== 0) {
+    lastWowRatings = (currentTotalRatings - prevTotalRatings) / prevTotalRatings;
+   }else{
+    lastWowRatings = currentTotalRatings > 0? 1 : 0;  
+   }
+  
+  return res.status(200).json({totalReviewer,totalRating,lastWowRatings,lastWowReviewer,data});
 
   } catch (error) {
     console.error("Error fetching weeklyRatingForCharts:", error);
