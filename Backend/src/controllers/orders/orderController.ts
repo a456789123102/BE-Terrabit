@@ -101,8 +101,8 @@ export const getAllOrders = async (req: Request, res: Response) => {
     const searchQuery = req.query.search as string | undefined;
 
     // Validate and default page and pageSize
-    const page = Math.max(Number(req.query.page) || 1, 1); // Default to 1 and ensure >= 1
-    const pageSize = Math.max(Number(req.query.pageSize) || 0, 0) || undefined; // Default to undefined if 0 or invalid
+    const page = Math.max(Number(req.query.page) || 1, 1); 
+    const pageSize = Math.max(Number(req.query.pageSize) || 0, 0) || undefined; 
     const offset = pageSize ? (page - 1) * pageSize : undefined;
 
     // สร้าง searchFilter
@@ -120,25 +120,22 @@ export const getAllOrders = async (req: Request, res: Response) => {
                   ? undefined
                   : parseInt(searchQuery),
               }, // ค้นหา userId
-              { items: { some: { productName: { contains: searchQuery } } } }, // ค้นหา productName ใน items
+              { items: { some: { productName: { contains: searchQuery } } } }, 
             ].filter(Boolean),
           }
         : {};
-
-    // รวมเงื่อนไข statusFilter และ searchFilter
     const combinedFilter = {
       ...statusFilter,
       ...searchFilter,
     };
 
-    // ดึงข้อมูลคำสั่งซื้อจากฐานข้อมูล
     const orders = await prisma.order.findMany({
       skip: offset,
       take: pageSize,
       where: combinedFilter,
       include: { items: true },
       orderBy: {
-        createdAt: "desc", // ✅ เรียงออเดอร์ใหม่ -> เก่า
+        createdAt: "desc", 
       },
     });
 
@@ -154,7 +151,7 @@ export const getAllOrders = async (req: Request, res: Response) => {
       orders,
       pagination: {
         page,
-        pageSize: pageSize || totalOrders, // ถ้า pageSize เป็น undefined แสดงจำนวนทั้งหมด
+        pageSize: pageSize || totalOrders, 
         totalOrders,
         totalPages,
       },
