@@ -229,65 +229,19 @@ export const getAllReviews = async (req: Request, res: Response) => {
   try {
     const search = (req.query.search as string) || "";
     const orderBy = (req.query.orderBy as "asc" | "desc") || "desc";
-    const orderWith = (req.query.order as string) || "createdAt"; // ✅ ใช้ req.query.order
+    const orderWith = (req.query.orderWith as string) || "createdAt";
+    
     const isPublishedParam = req.query.isPublished;
     const isPublished =
       isPublishedParam !== undefined ? isPublishedParam === "true" : undefined;
-    const interval = (req.query.interval as string) || "monthly";
-    const startDate = new Date(req.query.startDate as string);
-    const endDate = new Date(req.query.endDate as string);
-
     const page = Math.max(Number(req.query.page) || 1, 1);
     const pageSize = Math.max(Number(req.query.pageSize) || 0, 0) || undefined;
     const offset = pageSize ? (page - 1) * pageSize : undefined;
-
-    if (!interval || isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
-      return res
-        .status(400)
-        .json({
-          message:
-            "Invalid request. Please provide valid interval, startDate, and endDate.",
-        });
-    }
-
-    if (endDate < startDate) {
-      return res
-        .status(400)
-        .json({
-          message: "Invalid date range: Start date must be before end date.",
-        });
-    }
-
-    // ✅ ตรวจสอบช่วงเวลา
-    const checkDateLength = (
-      startDate: Date,
-      endDate: Date,
-      interval: string
-    ) => {
-      const maxEndDate = new Date(startDate);
-      if (interval === "monthly")
-        maxEndDate.setFullYear(maxEndDate.getFullYear() + 2);
-      else if (interval === "weekly")
-        maxEndDate.setMonth(maxEndDate.getMonth() + 6);
-      else if (interval === "daily")
-        maxEndDate.setMonth(maxEndDate.getMonth() + 1);
-      return endDate <= maxEndDate;
-    };
-
-    if (!checkDateLength(startDate, endDate, interval)) {
-      return res.status(400).json({
-        message: `Invalid date range: The selected end date exceeds the allowed limit for ${interval}.`,
-      });
-    }
 
     const reviews = await prisma.review.findMany({
         skip: offset,
         take: pageSize,
       where: {
-        createdAt: {
-          gte: startDate,
-          lte: endDate,
-        },
         ...(search
           ? {
               OR: [
@@ -303,11 +257,65 @@ export const getAllReviews = async (req: Request, res: Response) => {
       },
     });
 
-    return res.status(200).json({ reviews });
+    const totalReviews = await prisma.review.count({
+        where: {
+         ...(search
+           ? {
+              OR: [
+                { comments: { contains: search } },
+                { userName: { contains: search } },
+              ],
+            }
+          : {}),
+         ...(isPublished!== undefined? { isPublished } : {}),
+        },
+      });
+
+      const pagination = {
+        page: page,
+        totalPages: pageSize ? Math.ceil(totalReviews / pageSize) : 10, // ✅ แก้ Syntax Error
+        pageSize: pageSize ?? 10, // ✅ ถ้า pageSize เป็น undefined ให้ใช้ค่าเริ่มต้น 10
+        totalReviews: totalReviews,
+      };
+      
+    
+
+    return res.status(200).json({ reviews,pagination });
   } catch (error) {
     console.error("Error fetching reviews:", error);
     return res
       .status(500)
       .json({ message: "Failed to fetch review data", error });
+  }
+};
+////////////////////////////////////////////////////////////////////////////
+export const changeReviewStatus = async(req:Request, res:Response) => {
+  try {
+    console.log("REVIEW_changeReviewStatus")
+    const id = Number(req.params.id);
+    const currentReview = await prisma.review.findFirst({
+      where:{
+        id
+      }
+    });
+    if(!currentReview) {
+      return res.status(404).json({ message: "Review not found" });
+    }
+    const newStatus = !currentReview.isPublished;
+
+    await prisma.review.update({
+      where: {
+        id
+      },
+      data: {
+        isPublished: newStatus
+      }
+    });
+    return res.status(200).json({ message: `Review status has been changed to ${newStatus}` });
+  } catch (error) {
+    console.error("Error changing review status:", error);
+    return res
+     .status(500)
+     .json({ message: "Failed to change review status", error });
   }
 };
