@@ -98,12 +98,12 @@ export const getOrderForCharts = async (req: Request, res: Response) => {
         };
         date.setMonth(date.getMonth() + 1);
       }
-    }  else if (interval === "weekly") {
+    } else if (interval === "weekly") {
       let currentDate = new Date(startDate);
       while (currentDate <= endDate) {
         const weekNumber = getWeekNumber(currentDate);
         const label = `Week ${weekNumber} (${currentDate.getFullYear()})`;
-    
+
         expectedData[label] = {
           label,
           totalOrders: 0,
@@ -111,11 +111,10 @@ export const getOrderForCharts = async (req: Request, res: Response) => {
           success: 0,
           rejected: 0,
         };
-    
+
         currentDate.setDate(currentDate.getDate() + 7);
       }
-    }
-    else if (interval === "daily") {
+    } else if (interval === "daily") {
       let currentDate = new Date(startDate);
       while (currentDate <= endDate) {
         const label = currentDate.toISOString().split("T")[0]; // YYYY-MM-DD
@@ -139,8 +138,11 @@ export const getOrderForCharts = async (req: Request, res: Response) => {
             ? date.toISOString().split("T")[0]
             : interval === "weekly"
             ? `Week ${getWeekNumber(date)} (${date.getFullYear()})`
-            : `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-01`;
-    
+            : `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(
+                2,
+                "0"
+              )}-01`;
+
         if (!acc[label]) {
           acc[label] = {
             label,
@@ -150,21 +152,28 @@ export const getOrderForCharts = async (req: Request, res: Response) => {
             rejected: 0,
           };
         }
-    
+
         acc[label].totalOrders += 1;
-        if (["awaiting_slip_upload", "awaiting_confirmation", "awaiting_rejection"].includes(order.status)) {
+        if (
+          [
+            "awaiting_slip_upload",
+            "awaiting_confirmation",
+            "awaiting_rejection",
+          ].includes(order.status)
+        ) {
           acc[label].pending += 1;
         } else if (order.status === "order_approved") {
           acc[label].success += 1;
-        } else if (["order_rejected", "order_cancelled"].includes(order.status)) {
+        } else if (
+          ["order_rejected", "order_cancelled"].includes(order.status)
+        ) {
           acc[label].rejected += 1;
         }
-    
+
         return acc;
       },
       { ...expectedData }
     );
-    
 
     // แปลง `groupedData` เป็น `result` และเรียงตามลำดับเวลา
     const result = Object.values(groupedData); // ✅ แปลง Object เป็น Array โดยไม่ sort
@@ -188,21 +197,32 @@ export const getOrderForCharts = async (req: Request, res: Response) => {
             )}`; // เปลี่ยนให้ตรงกับ `startDate`
       result[0] = { ...result[0], label: expectedStartLabel };
     }
-    const total = ['totalOrders', 'pending', 'success', 'rejected'].reduce<Record<string, number>>((acc, key) => {
+    const total = ["totalOrders", "pending", "success", "rejected"].reduce<
+      Record<string, number>
+    >((acc, key) => {
       acc[key] = result.reduce((sum, curr) => sum + (curr as any)[key], 0); // ใช้ `as any` ช่วย TypeScript เข้าใจ
       return acc;
     }, {});
-    
-    const ComparativeGrowth = ['totalOrders', 'pending', 'success', 'rejected'].reduce<Record<string, number>>((acc, key) => {
+
+    const ComparativeGrowth = [
+      "totalOrders",
+      "pending",
+      "success",
+      "rejected",
+    ].reduce<Record<string, number>>((acc, key) => {
       const current = (result[result.length - 1] as any)?.[key] || 0;
       const previous = (result[result.length - 2] as any)?.[key] || 0;
-    
-      acc[key] = previous === 0 ? (current > 0 ? 1 : 0) : (current - previous) / previous;
+
+      acc[key] =
+        previous === 0
+          ? current > 0
+            ? 1
+            : 0
+          : (current - previous) / previous;
       return acc;
     }, {});
-    
 
-    return res.status(200).json({data:result,total,ComparativeGrowth});
+    return res.status(200).json({ data: result, total, ComparativeGrowth });
   } catch (error) {
     console.error("Error fetching orders:", error);
     return res
@@ -297,20 +317,18 @@ export const getTotalIncomesForCharts = async (req: Request, res: Response) => {
         expectedData[label] = { label, total: 0 };
         date.setMonth(date.getMonth() + 1);
       }
-    }  else if (interval === "weekly") {
+    } else if (interval === "weekly") {
       let currentDate = new Date(startDate);
       while (currentDate <= endDate) {
         const weekNumber = getWeekNumber(currentDate);
         const label = `Week ${weekNumber} (${currentDate.getFullYear()})`;
-    
+
         expectedData[label] = {
           label,
           total: 0,
-    
         };
         currentDate.setDate(currentDate.getDate() + 7);
       }
-    
     } else if (interval === "daily") {
       let currentDate = new Date(startDate);
       while (currentDate <= endDate) {
@@ -470,7 +488,7 @@ export const getWeeklySaleForCharts = async (req: Request, res: Response) => {
     console.log("Getting_weekly_sales");
 
     const startDate = new Date();
-    startDate.setDate(startDate.getDate() - 7 * 24); 
+    startDate.setDate(startDate.getDate() - 7 * 24);
     startDate.setHours(0, 0, 0, 0);
 
     const endDate = new Date(); // วันนี้
@@ -522,33 +540,39 @@ export const getWeeklySaleForCharts = async (req: Request, res: Response) => {
     let date = new Date(startDate);
     while (date <= endDate) {
       const weekNum = String(getWeekNumber(date)).padStart(2, "0");
-      const label = `${weekNum}-${date.getFullYear()}`; 
+      const label = `${weekNum}-${date.getFullYear()}`;
 
       if (!expectedData[label]) {
         expectedData[label] = {
-          label: `Week ${label}`, 
+          label: `Week ${label}`,
           totalOrders: 0,
           totalIncome: 0,
         };
       }
 
-      date.setDate(date.getDate() + 7); 
+      date.setDate(date.getDate() + 7);
     }
 
     // จัดกลุ่มข้อมูลตามสัปดาห์
-    const groupedData = weeklySalesData.reduce((acc, order) => {
-      const date = new Date(order.createdAt);
-      const label = `${String(getWeekNumber(date)).padStart(2, "0")}-${date.getFullYear()}`;
+    const groupedData = weeklySalesData.reduce(
+      (acc, order) => {
+        const date = new Date(order.createdAt);
+        const label = `${String(getWeekNumber(date)).padStart(
+          2,
+          "0"
+        )}-${date.getFullYear()}`;
 
-      if (!acc[label]) {
-        acc[label] = { ...expectedData[label] };
-      }
+        if (!acc[label]) {
+          acc[label] = { ...expectedData[label] };
+        }
 
-      acc[label].totalOrders += 1;
-      acc[label].totalIncome += order.totalPrice || 0;
+        acc[label].totalOrders += 1;
+        acc[label].totalIncome += order.totalPrice || 0;
 
-      return acc;
-    }, { ...expectedData });
+        return acc;
+      },
+      { ...expectedData }
+    );
 
     const data = Object.values(groupedData);
 
@@ -561,7 +585,8 @@ export const getWeeklySaleForCharts = async (req: Request, res: Response) => {
         ? data[data.length - 1].totalOrders > 0
           ? 1
           : 0
-        : (data[data.length - 1].totalOrders - data[data.length - 2].totalOrders) /
+        : (data[data.length - 1].totalOrders -
+            data[data.length - 2].totalOrders) /
           data[data.length - 2].totalOrders;
 
     const totalIncome = totalSalesData._sum.totalPrice || 0;
@@ -572,7 +597,8 @@ export const getWeeklySaleForCharts = async (req: Request, res: Response) => {
         ? data[data.length - 1].totalIncome > 0
           ? 1
           : 0
-        : (data[data.length - 1].totalIncome - data[data.length - 2].totalIncome) /
+        : (data[data.length - 1].totalIncome -
+            data[data.length - 2].totalIncome) /
           data[data.length - 2].totalIncome;
 
     return res.status(200).json({
@@ -581,6 +607,167 @@ export const getWeeklySaleForCharts = async (req: Request, res: Response) => {
       totalIncome,
       lastWowIncomes,
       data,
+    });
+  } catch (error) {
+    console.error("Error fetching orders:", error);
+    return res.status(500).json({
+      message: "Failed to fetch orders Charts data",
+      error,
+    });
+  }
+};
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+export const getYearlySaleForCharts = async (req: Request, res: Response) => {
+  try {
+    console.log("Getting_Yearly_sales");
+
+    const lastYear = new Date();
+    lastYear.setFullYear(lastYear.getFullYear() - 1, 0, 1);
+    const endLastYear = new Date(lastYear);
+    endLastYear.setMonth(11, 31);
+    endLastYear.setHours(23, 59, 59, 999);
+
+    const totalSales = await prisma.order.findMany({
+      where: {
+        status: "order_approved",
+        createdAt: {
+          gte: lastYear,
+        },
+      },
+      select: {
+        createdAt: true,
+        totalPrice: true,
+        items: true,
+      },
+    });
+
+    const totalSalesLastYear = await prisma.order.aggregate({
+      where: {
+        status: "order_approved",
+        createdAt: {
+          gte: lastYear,
+          lte: endLastYear,
+        },
+      },
+      _count: {
+        id: true,
+      },
+      _sum: {
+        totalPrice: true,
+      },
+    });
+
+    const totalSalesThisYear = await prisma.order.aggregate({
+      where: {
+        status: "order_approved",
+        createdAt: {
+          gt: endLastYear,
+        },
+      },
+      _count: {
+        id: true,
+      },
+      _sum: {
+        totalPrice: true,
+      },
+    });
+
+    let expectedData: {
+      [key: string]: {
+        label: string;
+        thisYearSales: number;
+        lastYearSales: number;
+        thisYearOrders: number;
+        lastYearOrders: number;
+        thisYearItemsSales: number;
+        lastYearItemsSales: number;
+      };
+    } = {};
+
+    for (let month = 0; month < 12; month++) {
+      const monthlabel = String(month);
+      if (!expectedData[monthlabel]) {
+        expectedData[monthlabel] = {
+          label: `Month-${String(month + 1).padStart(2, "0")} `,
+          thisYearSales: 0,
+          lastYearSales: 0,
+          thisYearOrders: 0,
+          lastYearOrders: 0,
+          thisYearItemsSales: 0,
+          lastYearItemsSales: 0,
+        };
+      }
+    }
+
+    const thisYear = new Date().getFullYear();
+
+    totalSales.forEach((order) => {
+      if (!order.createdAt) return;
+      const date = new Date(order.createdAt);
+      const label = String(date.getMonth());
+      if (!expectedData[label]) return;
+      const totalPrice = Number(order.totalPrice) || 0;
+      if (date.getFullYear() === thisYear) {
+        expectedData[label].thisYearSales += totalPrice;
+        expectedData[label].thisYearOrders++;
+        expectedData[label].thisYearItemsSales += order.items.length;
+      } else {
+        expectedData[label].lastYearSales += totalPrice;
+        expectedData[label].lastYearOrders++;
+        expectedData[label].lastYearItemsSales += order.items.length;
+      }
+    });
+
+    const data = Object.values(expectedData);
+
+    const totalLastYearOrders = totalSalesLastYear._count.id || 0;
+    const totalLastYearSales = totalSalesLastYear._sum.totalPrice || 0;
+
+    const totalThisYearOrders = totalSalesThisYear._count.id || 0;
+    const totalThisYearSales = totalSalesThisYear._sum.totalPrice || 0;
+
+    const totalItemsSales = data.reduce((acc, cur) =>{
+      acc.lastYearItemsSales += cur.lastYearItemsSales;
+      acc.thisYearItemsSales += cur.thisYearItemsSales;
+      return acc;
+    },{
+      lastYearItemsSales: 0,
+      thisYearItemsSales: 0, 
+      compareOrdersGrowth: 0
+    })
+    totalItemsSales.compareOrdersGrowth = totalItemsSales.lastYearItemsSales === 0
+    ? (totalItemsSales.thisYearItemsSales > 0 ? 1: 0) 
+    : ((totalItemsSales.thisYearItemsSales - totalItemsSales.lastYearItemsSales) / totalItemsSales.lastYearItemsSales);
+
+
+    const compareSalesGrowth =
+      totalLastYearSales === 0
+        ? totalThisYearSales > 0
+          ? 1
+          : 0
+        : (totalThisYearSales - totalLastYearSales) / totalLastYearSales;
+
+    const compareOrdersGrowth =
+      totalLastYearOrders === 0
+        ? totalThisYearOrders > 0
+          ? 1
+          : 0
+        : (totalThisYearOrders - totalLastYearOrders) / totalLastYearOrders;
+
+    return res.status(200).json({
+      data,
+      totalOrders: {
+        thisYear: totalThisYearOrders,
+        lastYear: totalLastYearOrders,
+        compareOrdersGrowth,
+      },
+      totalSales: {
+        thisYear: totalThisYearSales,
+        lastYear: totalLastYearSales,
+        compareSalesGrowth,
+      },
+      totalItemsSales
     });
   } catch (error) {
     console.error("Error fetching orders:", error);

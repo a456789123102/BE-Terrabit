@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { updateOrderStatusByUser,getAllOrders,getmyOrder,getOrderById,deleteOrder,updateOrderAddress,updateOrderStatusByAdmin ,
 } from "../../controllers/orders/orderController";
-import {getOrderForCharts,getTotalIncomesForCharts,getTopSellerItems,getWeeklySaleForCharts} from "../../controllers/orders/orderAnalyticsService";
+import {getOrderForCharts,getTotalIncomesForCharts,getTopSellerItems,getWeeklySaleForCharts,getYearlySaleForCharts} from "../../controllers/orders/orderAnalyticsService";
 import { verifyUser, verifyAdmin } from "../../middlewares/verify";
 
 const router = Router();
@@ -17,5 +17,5 @@ router.get("/charts/getOrderForCharts", verifyAdmin, getOrderForCharts);
 router.get("/charts/getTotalIncomesForCharts", verifyAdmin, getTotalIncomesForCharts);
 router.get("/charts/getTopSellerItems", verifyAdmin, getTopSellerItems);
 router.get("/charts/getWeeklySaleForCharts", verifyAdmin, getWeeklySaleForCharts);
-
+router.get("/charts/getYearlySaleForCharts", verifyAdmin, getYearlySaleForCharts);
 export default router;
