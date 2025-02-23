@@ -402,86 +402,77 @@ export const getTopSellerItems = async (req: Request, res: Response) => {
   console.log("order_getTopSeller");
 
   try {
-    const interval = (req.query.interval as string) || "monthly";
+    const interval = req.query.interval as string;
     const length = Number(req.query.length) || 10;
+    let orderBy = (req.query.orderBy as string) || "quantity"; // ⚡ Default เป็น "quantity"
+    let startDate = req.query.startDate ? new Date(req.query.startDate as string) : undefined;
+    let endDate = req.query.endDate ? new Date(req.query.endDate as string) : undefined;
+
+
+    // ตรวจสอบ interval
     const isCorrectInterval = ["weekly", "monthly", "daily"].includes(interval);
-    if (!isCorrectInterval) {
+    if (interval && !isCorrectInterval) {
       return res.status(400).json({
-        message:
-          "Invalid interval. Valid intervals are: weekly, monthly, daily.",
+        message: "Invalid interval. Valid intervals are: weekly, monthly, daily.",
       });
     }
-
-    let startDate = req.query.startDate
-      ? new Date(req.query.startDate as string)
-      : new Date();
-    let endDate = req.query.endDate
-      ? new Date(req.query.endDate as string)
-      : new Date();
-
-    const checkDateLength = (
-      startDate: Date,
-      endDate: Date,
-      interval: string
-    ) => {
+    const checkDateLength = (startDate: Date, endDate: Date, interval: string) => {
       const maxEndDate = new Date(startDate);
-      if (interval === "monthly")
-        maxEndDate.setFullYear(maxEndDate.getFullYear() + 2);
-      else if (interval === "weekly")
-        maxEndDate.setMonth(maxEndDate.getMonth() + 7);
-      else if (interval === "daily")
-        maxEndDate.setMonth(maxEndDate.getMonth() + 1);
+      if (interval === "monthly") maxEndDate.setFullYear(maxEndDate.getFullYear() + 2);
+      else if (interval === "weekly") maxEndDate.setMonth(maxEndDate.getMonth() + 7);
+      else if (interval === "daily") maxEndDate.setMonth(maxEndDate.getMonth() + 1);
       return endDate <= maxEndDate;
     };
 
-    if (!checkDateLength(startDate, endDate, interval)) {
+    if (startDate && endDate && !checkDateLength(startDate, endDate, interval)) {
       return res.status(400).json({
         message: `Invalid date range: The selected end date exceeds the allowed limit for ${interval}.`,
       });
     }
 
-    if (endDate < startDate) {
-      return res.status(400).json({
-        message: "Invalid date range: Start date must be before end date.",
-      });
-    }
-
+    // Prisma Query: Group by productId & productName
     const topSellerItems = await prisma.orderItem.groupBy({
       by: ["productId", "productName"],
       _sum: {
-        quantity: true, // รวมจำนวนสินค้าที่ขายได้
-        price: true, // รวมยอดขายของสินค้านั้น ๆ
+        quantity: true,
+        price: true,
       },
       where: {
         order: {
-          status: "order_approved", // นับเฉพาะออเดอร์ที่ถูกอนุมัติ
+          status: "order_approved",
         },
-        createdAt: {
-          gte: startDate,
-          lte: endDate,
-        },
+        ...(startDate || endDate
+          ? {
+              createdAt: {
+                ...(startDate ? { gte: startDate } : {}),
+                ...(endDate ? { lte: endDate } : {}),
+              },
+            }
+          : {}),
       },
       orderBy: {
         _sum: {
-          quantity: "desc", // เรียงจากสินค้าที่ขายดีที่สุด
+          [orderBy]: "desc",
         },
       },
-      take: length, // ดึง Top 10 สินค้าขายดี
+      take: length,
     });
 
+    // จัดรูปแบบข้อมูลที่ดึงมา
     const formattedData = topSellerItems.map((item) => ({
       label: item.productName,
-      quantity: item._sum.quantity,
-      total: item._sum.price,
+      quantity: item._sum.quantity || 0,
+      total: item._sum.price || 0,
     }));
-    return res.status(200).json(formattedData);
+
+    return res.status(200).json({chartsData:formattedData});
   } catch (error) {
     console.error("Error fetching orders:", error);
-    return res
-      .status(500)
-      .json({ message: "Failed to fetch orders Charts data", error });
+    return res.status(500).json({ message: "Failed to fetch orders Charts data", error });
   }
 };
+
+
 ////////////////////////////////////////////////////////////////////////////
 export const getWeeklySaleForCharts = async (req: Request, res: Response) => {
   try {
@@ -728,17 +719,17 @@ export const getYearlySaleForCharts = async (req: Request, res: Response) => {
     const totalThisYearSales = totalSalesThisYear._sum.totalPrice || 0;
 
     const totalItemsSales = data.reduce((acc, cur) =>{
-      acc.lastYearItemsSales += cur.lastYearItemsSales;
-      acc.thisYearItemsSales += cur.thisYearItemsSales;
+      acc.lastYear += cur.lastYearItemsSales;
+      acc.thisYear += cur.thisYearItemsSales;
       return acc;
     },{
-      lastYearItemsSales: 0,
-      thisYearItemsSales: 0, 
-      compareOrdersGrowth: 0
+      lastYear: 0,
+      thisYear: 0, 
+      compareGrowth: 0
     })
-    totalItemsSales.compareOrdersGrowth = totalItemsSales.lastYearItemsSales === 0
-    ? (totalItemsSales.thisYearItemsSales > 0 ? 1: 0) 
-    : ((totalItemsSales.thisYearItemsSales - totalItemsSales.lastYearItemsSales) / totalItemsSales.lastYearItemsSales);
+    totalItemsSales.compareGrowth = totalItemsSales.lastYear === 0
+    ? (totalItemsSales.thisYear > 0 ? 1: 0) 
+    : ((totalItemsSales.thisYear - totalItemsSales.lastYear) / totalItemsSales.lastYear);
 
 
     const compareSalesGrowth =
@@ -760,12 +751,12 @@ export const getYearlySaleForCharts = async (req: Request, res: Response) => {
       totalOrders: {
         thisYear: totalThisYearOrders,
         lastYear: totalLastYearOrders,
-        compareOrdersGrowth,
+        compareGrowth:compareOrdersGrowth,
       },
       totalSales: {
         thisYear: totalThisYearSales,
         lastYear: totalLastYearSales,
-        compareSalesGrowth,
+        compareGrowth:compareSalesGrowth,
       },
       totalItemsSales
     });

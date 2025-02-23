@@ -12,36 +12,31 @@ model User {
   email        String         @unique
   username     String         @unique
   password     String
-  image        String?
-  isActive Boolean @default(true)
+  isActive     Boolean        @default(true)
   isAdmin      Boolean        @default(false)
   createdAt    DateTime       @default(now())
   updatedAt    DateTime       @updatedAt
   Addresses    Addresses[]
   Cart         Cart[]
   Order        Order[]
-  Thread       Thread[]
-  Reply        Reply[]
-  Like         Like[]
   Review       Review[]
-  Announcement Announcement[]
   OrderItem    OrderItem[]
 }
 
 model Product {
-  id          Int      @id @default(autoincrement())
-  name        String   @unique
-  price       Float?
-  discount    Float?
-  finalPrice  Float?
-  quantity    Int
-  description String
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id              Int               @id @default(autoincrement())
+  name            String            @unique
+  price           Float?
+  discount        Float?
+  finalPrice      Float?
+  quantity        Int
+  description     String
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
   ProductCategory ProductCategory[]
   Cart            Cart[]
   OrderItem       OrderItem[]
-  Review          Review[]          // Removed `onDelete` here
+  Review          Review[]
   Image           ProductImage[]
 }
 
@@ -49,7 +44,6 @@ model Category {
   id              Int               @id @default(autoincrement())
   name            String
   ProductCategory ProductCategory[]
-  Thread          Thread[]
 }
 
 model ProductCategory {
@@ -63,15 +57,17 @@ model ProductCategory {
 }
 
 model Addresses {
-  id            Int      @id @default(autoincrement())
-  userId        Int
-  recipientName String
-  street        String
-  city          String
-  state         String
-  zipCode       String
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id             Int      @id @default(autoincrement())
+  userId         Int
+  recipientName  String
+  currentAddress String
+  city           String
+  state          String
+  zipCode        String
+  mobileNumber   String
+  email          String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
   user  User    @relation(fields: [userId], references: [id], onDelete: Cascade)
   Order Order[]
@@ -82,12 +78,11 @@ model ProductImage {
   name      String
   imageUrl  String
   createdAt DateTime @default(now())
-  updatedAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
   productId Int
 }
-
 
 model Cart {
   id         Int      @id @default(autoincrement())
@@ -96,12 +91,11 @@ model Cart {
   quantity   Int      @default(1)
   totalPrice Float?
   createdAt  DateTime @default(now())
-  updatedAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
-  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   product Product? @relation(fields: [productId], references: [id], onDelete: SetNull) // ตั้งค่าเป็น NULL เมื่อ Product ถูกลบ
 }
-
 
 model Order {
   id         Int      @id @default(autoincrement())
@@ -110,7 +104,7 @@ model Order {
   status     String   @default("awaiting_slip_upload")
   slipUrl    String?
   createdAt  DateTime @default(now())
-  updatedAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
   Address     Addresses?  @relation(fields: [addressesId], references: [id])
   user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -126,25 +120,24 @@ model OrderItem {
   quantity    Int
   price       Float
   createdAt   DateTime @default(now())
-  updatedAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
-  order       Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  product     Product? @relation(fields: [productId], references: [id], onDelete: SetNull) // ตั้งค่าเป็น NULL เมื่อ Product ถูกลบ
-  User        User?    @relation(fields: [userId], references: [id])
-  userId      Int?
+  order   Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product Product? @relation(fields: [productId], references: [id], onDelete: SetNull) // ตั้งค่าเป็น NULL เมื่อ Product ถูกลบ
+  User    User?    @relation(fields: [userId], references: [id])
+  userId  Int?
 }
 
-
 model Review {
-  id        Int      @id @default(autoincrement())
-  productId Int
-  userId    Int
-  userName String
-  rating    Float
-  comments  String
-  isPublished Boolean @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @default(now())
+  id          Int      @id @default(autoincrement())
+  productId   Int
+  userId      Int
+  userName    String
+  rating      Float
+  comments    String
+  isPublished Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
   user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -152,67 +145,28 @@ model Review {
   @@unique([productId, userId])
 }
 
-model Thread {
-  id         Int      @id @default(autoincrement())
-  userId     Int
-  title      String
-  content    String
-  categoryId Int
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @default(now())
-
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  category  Category @relation(fields: [categoryId], references: [id])
-  viewCount Int      @default(0)
-  replies   Reply[]
-  likes     Like[]
-}
-
-model Reply {
-  id        Int      @id @default(autoincrement())
-  userId    Int
-  threadId  Int
-  content   String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @default(now())
-
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  thread Thread @relation(fields: [threadId], references: [id], onDelete: Cascade)
-  Like   Like[]
-}
-
-model Like {
-  id        Int      @id @default(autoincrement())
-  userId    Int
-  threadId  Int?
-  replyId   Int?
-  createdAt DateTime @default(now())
-
-  user   User    @relation(fields: [userId], references: [id], onDelete: Restrict)
-  thread Thread? @relation(fields: [threadId], references: [id], onDelete: Cascade)
-  reply  Reply?  @relation(fields: [replyId], references: [id], onDelete: Restrict)
-}
-
-model Announcement {
-  id        Int      @id @default(autoincrement())
-  title     String
-  content   String
-  image     String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @default(now())
-  userId    Int
-
-  User User @relation(fields: [userId], references: [id], onDelete: Restrict)
-}
-
 model Career {
-  id          Int      @id @default(autoincrement())
+  id          Int               @id @default(autoincrement())
   title       String
   site        String
   description String
   type        String
   location    String
   salary      Float
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+  assigners   careerAssigner[]  
+}
+
+model careerAssigner {
+  id          Int      @id @default(autoincrement())
+  careerId    Int
+  name        String
+  lastName    String
+  email       String
+  description String
+  phoneNumber String
   createdAt   DateTime @default(now())
-  updatedAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  career      Career   @relation(fields: [careerId], references: [id])
 }
