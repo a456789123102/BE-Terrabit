@@ -1,4 +1,4 @@
-import {createAddress,editAddress,getOwnAddresses,deleteAddress,getOneAddresses} from "../../controllers/addresses/addressController"
+import {createAddress,editAddress,getOwnAddresses,deleteAddress,getOneAddresses,getProvince,getAmphure,getTambon} from "../../controllers/addresses/addressController"
 import { verifyUser, verifyAdmin } from "../../middlewares/verify";
 import {Router} from 'express';
 
@@ -8,6 +8,8 @@ router.patch('/myAddress/:addressId/update', verifyUser,editAddress);
 router.delete('/myAddress/:addressId/delete',verifyUser,deleteAddress);
 router.get('/myAddress/:addressId',verifyUser,getOneAddresses);
 router.get('/myAddress',verifyUser,getOwnAddresses);
-
+router.get('/province',verifyUser,getProvince);
+router.get('/:provinceId/amphure',verifyUser,getAmphure);
+router.get('/:amphureId/tambon',verifyUser,getTambon);
 
 export default router;

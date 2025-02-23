@@ -27,7 +27,6 @@ export const register = async (req: Request, res: Response) => {
         email,
         username,
         password: hashedPassword,
-        image: image || "Not assign yet"
       }
     });
 
@@ -49,7 +48,7 @@ export const login = async (req:Request, res:Response) => {
     }
     const user = await prisma.user.findUnique({
       where: { username },
-      select: { id: true, email: true, username: true, password: true, image: true }
+      select: { id: true, email: true, username: true, password: true}
     });
     if (!user) {
       return res.status(401).json({ message: 'Invalid username or password' });

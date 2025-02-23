@@ -56,22 +56,6 @@ model ProductCategory {
   @@id([productId, categoryId])
 }
 
-model Addresses {
-  id             Int      @id @default(autoincrement())
-  userId         Int
-  recipientName  String
-  currentAddress String
-  city           String
-  state          String
-  zipCode        String
-  mobileNumber   String
-  email          String?
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-
-  user  User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  Order Order[]
-}
 
 model ProductImage {
   id        Int      @id @default(autoincrement())
@@ -158,6 +142,7 @@ model Career {
   assigners   careerAssigner[]  
 }
 
+
 model careerAssigner {
   id          Int      @id @default(autoincrement())
   careerId    Int
@@ -169,4 +154,49 @@ model careerAssigner {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   career      Career   @relation(fields: [careerId], references: [id])
+}
+
+model Addresses {
+  id             Int      @id @default(autoincrement())
+  userId         Int
+  recipientName  String
+  currentAddress String
+  provinceName   String
+  amphureName    String
+  tambonName     String
+  zipCode        String
+  mobileNumber   String
+  email          String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+ orders Order[]
+  user  User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+
+model Province {
+  id           Int       @id
+  name_th      String
+  name_en      String
+  geography_id Int
+  amphures     Amphure[]
+}
+
+model Amphure {
+  id          Int       @id
+  name_th     String
+  name_en     String
+  province_id Int
+  province    Province @relation(fields: [province_id], references: [id])
+  tambons     Tambon[]
+}
+
+model Tambon {
+  id         Int       @id
+  name_th    String
+  name_en    String
+  amphure_id Int
+  amphure    Amphure @relation(fields: [amphure_id], references: [id])
+  zip_code   Int
 }
