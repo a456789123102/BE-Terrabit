@@ -9,20 +9,34 @@ export const createAddress = async (req: Request, res: Response) => {
     const userId = Number((req as any).user.id);
     if (!userId) return res.status(400).json({ message: "User is required" });
 
-    const { recipientName, currentAddress, provinceName, amphureName, tambonName, zipCode, mobileNumber, email } = req.body;
+    const {
+      recipientName,
+      currentAddress,
+      provinceId,
+      provinceName,
+      amphureId,
+      amphureName,
+      tambonId,
+      tambonName,
+      zipCode,
+      mobileNumber,
+      email,
+    } = req.body;
 
-    if (!recipientName || !currentAddress || !provinceName || !amphureName || !tambonName || !zipCode || !mobileNumber) {
+    if (!recipientName || !currentAddress || !provinceId || !amphureId || !tambonId || !zipCode || !mobileNumber) {
       return res.status(400).json({ message: "All fields are required" });
     }
 
-    // ✅ สร้างที่อยู่ใหม่
     const address = await prisma.addresses.create({
       data: {
         userId,
         recipientName,
         currentAddress,
+        provinceId,
         provinceName,
+        amphureId,
         amphureName,
+        tambonId,
         tambonName,
         zipCode,
         mobileNumber,
@@ -37,7 +51,6 @@ export const createAddress = async (req: Request, res: Response) => {
   }
 };
 
-
 export const getOwnAddresses = async (req: Request, res: Response) => {
   try {
     const userId = Number((req as any).user.id);
@@ -49,8 +62,11 @@ export const getOwnAddresses = async (req: Request, res: Response) => {
         id: true,
         recipientName: true,
         currentAddress: true,
+        provinceId: true,
         provinceName: true,
+        amphureId: true,
         amphureName: true,
+        tambonId: true,
         tambonName: true,
         zipCode: true,
         mobileNumber: true,
@@ -66,22 +82,42 @@ export const getOwnAddresses = async (req: Request, res: Response) => {
   }
 };
 
-
-export const getOneAddresses = async (req: Request, res: Response) => {
+export const getOneAddress = async (req: Request, res: Response) => {
   try {
-      const userId = Number((req as any).user.id);
-      const addressId = Number(req.params.addressId);
-      if (!userId) return res.status(400).json({ message: "User is required" });
-      const address = await prisma.addresses.findMany({
-        
-          where: {id: addressId, userId: userId, },
-      });
-      return res.status(200).json({message:"success",address});
-  } catch (error) {
-      return res.status(500).json({ message:"error creating address", error });
-  }
-}
+    const userId = Number((req as any).user.id);
+    const addressId = Number(req.params.addressId);
 
+    if (!userId) return res.status(400).json({ message: "User is required" });
+
+    const address = await prisma.addresses.findUnique({
+      where: { id: addressId, userId: userId },
+      select: {
+        id: true,
+        recipientName: true,
+        currentAddress: true,
+        provinceId: true,
+        provinceName: true,
+        amphureId: true,
+        amphureName: true,
+        tambonId: true,
+        tambonName: true,
+        zipCode: true,
+        mobileNumber: true,
+        email: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+
+    if (!address) {
+      return res.status(404).json({ message: "Address not found" });
+    }
+
+    return res.status(200).json({ message: "Success", address });
+  } catch (error) {
+    return res.status(500).json({ message: "Error fetching address", error });
+  }
+};
 
 export const editAddress = async (req: Request, res: Response) => {
   console.log("Address_edit");
@@ -89,29 +125,42 @@ export const editAddress = async (req: Request, res: Response) => {
     const userId = Number((req as any).user.id);
     const addressId = Number(req.params.addressId);
 
-    const { recipientName, currentAddress, provinceName, amphureName, tambonName, zipCode, mobileNumber, email } = req.body;
+    const {
+      recipientName,
+      currentAddress,
+      provinceId,
+      provinceName,
+      amphureId,
+      amphureName,
+      tambonId,
+      tambonName,
+      zipCode,
+      mobileNumber,
+      email,
+    } = req.body;
 
-    if (!recipientName || !currentAddress || !provinceName || !amphureName || !tambonName || !zipCode || !mobileNumber) {
+    if (!recipientName || !currentAddress || !provinceId || !amphureId || !tambonId || !zipCode || !mobileNumber) {
       return res.status(400).json({ message: "All fields are required" });
     }
 
-    // ✅ เช็คว่าที่อยู่นี้มีอยู่จริงไหม
     const isExistingAddress = await prisma.addresses.findUnique({
-      where: { id: addressId },
+      where: { id: addressId, userId: userId },
     });
 
     if (!isExistingAddress) {
       return res.status(404).json({ message: "Address not found" });
     }
 
-    // ✅ อัปเดตที่อยู่
     const address = await prisma.addresses.update({
       where: { id: addressId },
       data: {
         recipientName,
         currentAddress,
+        provinceId,
         provinceName,
+        amphureId,
         amphureName,
+        tambonId,
         tambonName,
         zipCode,
         mobileNumber,
@@ -125,33 +174,31 @@ export const editAddress = async (req: Request, res: Response) => {
   }
 };
 
-
 export const deleteAddress = async (req: Request, res: Response) => {
-    console.log("Address_delete");
   try {
     const userId = Number((req as any).user.id);
     const addressId = Number(req.params.addressId);
-    if(!userId) return res.status(404).json({message:"user not found"});
+
+    if (!userId) return res.status(400).json({ message: "User is required" });
+
     const isExistingAddress = await prisma.addresses.findUnique({
-        where: {
-          id: addressId,
-          userId: userId,
-        },
+      where: { id: addressId, userId: userId },
     });
+
     if (!isExistingAddress) {
       return res.status(404).json({ message: "Address not found" });
     }
+
     await prisma.addresses.delete({
-        where: {
-          id: addressId,
-          userId: userId,
-        },
+      where: { id: addressId },
     });
+
     return res.status(200).json({ message: "Address deleted successfully" });
   } catch (error) {
-    return res.status(500).json({message: "Error while delete address",error})
+    return res.status(500).json({ message: "Error deleting address", error });
   }
-}
+};
+
 
 export const getProvince = async(req: Request, res:Response) => {
   try {

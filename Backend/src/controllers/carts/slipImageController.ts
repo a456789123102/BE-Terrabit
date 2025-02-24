@@ -50,7 +50,7 @@
       await prisma.order.update({
         where: { id: Number(orderId) },
         data: {
-          status: "awaiting_confirmation",
+          status: "pending_payment_verification",
         },
       });
     }

@@ -8,19 +8,19 @@ datasource db {
 }
 
 model User {
-  id           Int            @id @default(autoincrement())
-  email        String         @unique
-  username     String         @unique
-  password     String
-  isActive     Boolean        @default(true)
-  isAdmin      Boolean        @default(false)
-  createdAt    DateTime       @default(now())
-  updatedAt    DateTime       @updatedAt
-  Addresses    Addresses[]
-  Cart         Cart[]
-  Order        Order[]
-  Review       Review[]
-  OrderItem    OrderItem[]
+  id        Int         @id @default(autoincrement())
+  email     String      @unique
+  username  String      @unique
+  password  String
+  isActive  Boolean     @default(true)
+  isAdmin   Boolean     @default(false)
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+  Addresses Addresses[]
+  Cart      Cart[]
+  Order     Order[]
+  Review    Review[]
+  OrderItem OrderItem[]
 }
 
 model Product {
@@ -56,7 +56,6 @@ model ProductCategory {
   @@id([productId, categoryId])
 }
 
-
 model ProductImage {
   id        Int      @id @default(autoincrement())
   name      String
@@ -89,6 +88,7 @@ model Order {
   slipUrl    String?
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
+  cancelOrRejectReason String? 
 
   Address     Addresses?  @relation(fields: [addressesId], references: [id])
   user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -130,18 +130,17 @@ model Review {
 }
 
 model Career {
-  id          Int               @id @default(autoincrement())
+  id          Int              @id @default(autoincrement())
   title       String
   site        String
   description String
   type        String
   location    String
   salary      Float
-  createdAt   DateTime          @default(now())
-  updatedAt   DateTime          @updatedAt
-  assigners   careerAssigner[]  
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  assigners   careerAssigner[]
 }
-
 
 model careerAssigner {
   id          Int      @id @default(autoincrement())
@@ -161,8 +160,11 @@ model Addresses {
   userId         Int
   recipientName  String
   currentAddress String
+  provinceId     Int
   provinceName   String
+  amphureId      Int
   amphureName    String
+  tambonId       Int
   tambonName     String
   zipCode        String
   mobileNumber   String
@@ -170,33 +172,42 @@ model Addresses {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
- orders Order[]
-  user  User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  orders Order[]
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  province Province @relation(fields: [provinceId], references: [id], onDelete: Restrict)
+  amphure  Amphure  @relation(fields: [amphureId], references: [id], onDelete: Restrict)
+  tambon   Tambon   @relation(fields: [tambonId], references: [id], onDelete: Restrict)
 }
 
-
 model Province {
-  id           Int       @id
+  id           Int    @id
   name_th      String
   name_en      String
   geography_id Int
-  amphures     Amphure[]
+
+  amphures  Amphure[]
+  Addresses Addresses[]
 }
 
 model Amphure {
-  id          Int       @id
+  id          Int      @id
   name_th     String
   name_en     String
   province_id Int
-  province    Province @relation(fields: [province_id], references: [id])
-  tambons     Tambon[]
+  province    Province @relation(fields: [province_id], references: [id], onDelete: Cascade)
+
+  tambons   Tambon[]
+  Addresses Addresses[]
 }
 
 model Tambon {
-  id         Int       @id
+  id         Int     @id
   name_th    String
   name_en    String
   amphure_id Int
-  amphure    Amphure @relation(fields: [amphure_id], references: [id])
+  amphure    Amphure @relation(fields: [amphure_id], references: [id], onDelete: Cascade)
   zip_code   Int
+
+  Addresses Addresses[]
 }

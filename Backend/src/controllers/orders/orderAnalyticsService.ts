@@ -156,16 +156,16 @@ export const getOrderForCharts = async (req: Request, res: Response) => {
         acc[label].totalOrders += 1;
         if (
           [
-            "awaiting_slip_upload",
-            "awaiting_confirmation",
+            "pending_payment_proof",
+            "pending_payment_verification",
             "awaiting_rejection",
           ].includes(order.status)
         ) {
           acc[label].pending += 1;
-        } else if (order.status === "order_approved") {
+        } else if (order.status === "payment_verified") {
           acc[label].success += 1;
         } else if (
-          ["order_rejected", "order_cancelled"].includes(order.status)
+          ["cancelled_by_admin", "cancelled_by_user","refund_rejected","refund_completed"].includes(order.status)
         ) {
           acc[label].rejected += 1;
         }
@@ -175,8 +175,7 @@ export const getOrderForCharts = async (req: Request, res: Response) => {
       { ...expectedData }
     );
 
-    // แปลง `groupedData` เป็น `result` และเรียงตามลำดับเวลา
-    const result = Object.values(groupedData); // ✅ แปลง Object เป็น Array โดยไม่ sort
+    const result = Object.values(groupedData); 
 
     if (result.length > 0) {
       const startDateObj = new Date(startDate);
@@ -194,13 +193,13 @@ export const getOrderForCharts = async (req: Request, res: Response) => {
             ).padStart(2, "0")}-${String(startDateObj.getDate()).padStart(
               2,
               "0"
-            )}`; // เปลี่ยนให้ตรงกับ `startDate`
+            )}`; 
       result[0] = { ...result[0], label: expectedStartLabel };
     }
     const total = ["totalOrders", "pending", "success", "rejected"].reduce<
       Record<string, number>
     >((acc, key) => {
-      acc[key] = result.reduce((sum, curr) => sum + (curr as any)[key], 0); // ใช้ `as any` ช่วย TypeScript เข้าใจ
+      acc[key] = result.reduce((sum, curr) => sum + (curr as any)[key], 0); 
       return acc;
     }, {});
 
@@ -278,14 +277,14 @@ export const getTotalIncomesForCharts = async (req: Request, res: Response) => {
       });
     }
 
-    // ดึงข้อมูลคำสั่งซื้อ
+    // ดึงข้อมูล
     const orders = await prisma.order.findMany({
       where: {
         createdAt: {
           gte: startDate,
           lte: endDate,
         },
-        status: "order_approved",
+        status:"payment_verified",
       },
       orderBy: {
         createdAt: "asc",

@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { updateOrderStatusByUser,getAllOrders,getmyOrder,getOrderById,deleteOrder,updateOrderAddress,updateOrderStatusByAdmin ,
+import { updateOrderStatusByUser,getAllOrders,getmyOrder,deleteOrder,updateOrderAddress,updateOrderStatusByAdmin ,
 } from "../../controllers/orders/orderController";
 import {getOrderForCharts,getTotalIncomesForCharts,getTopSellerItems,getWeeklySaleForCharts,getYearlySaleForCharts} from "../../controllers/orders/orderAnalyticsService";
 import { verifyUser, verifyAdmin } from "../../middlewares/verify";
@@ -8,7 +8,6 @@ const router = Router();
 
 router.patch("/:orderId/userUpdateStatus", verifyUser, updateOrderStatusByUser);
 router.patch("/:orderId/adminUpdateStatus", verifyAdmin, updateOrderStatusByAdmin);
-router.get("/myOrder/:orderId", verifyUser, getOrderById);
 router.get("/:status/myOrder", verifyUser, getmyOrder);
 router.delete("/:orderId/delete", verifyUser, deleteOrder);
 router.get("/all", verifyAdmin, getAllOrders);

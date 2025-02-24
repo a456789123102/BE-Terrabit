@@ -10,15 +10,13 @@ export const updateOrderStatusByUser = async (req: Request, res: Response) => {
     const { status } = req.body;
 
     const validStatuses = [
-      "awaiting_slip_upload",
-      "awaiting_confirmation",
-      "awaiting_rejection",
-      "order_cancelled",
+      "pending_payment_proof",
+      "cancelled_by_user",
     ];
     if (!validStatuses.includes(status)) {
       return res.status(400).json({
         message:
-          "Invalid status. Valid statuses areeee: pending, confirmed, cancelled.",
+          "Invalid status.",
       });
     }
     const existingOrder = await prisma.order.findUnique({
@@ -47,15 +45,16 @@ export const updateOrderStatusByAdmin = async (req: Request, res: Response) => {
   console.log("order_updateStatusByAdmin");
   try {
     const { orderId } = req.params;
-    const { status } = req.body;
+    const { status ,reason} = req.body;
 console.log("updateStatus:",status)
     const validStatuses = [
-      "awaiting_slip_upload",
-      "awaiting_confirmation",
-      "awaiting_rejection",
-      "order_approved",
-      "order_rejected",
-      "order_cancelled",
+      "pending_payment_proof",
+      "pending_payment_verification",
+      "payment_verified",
+      "cancelled_by_admin",
+      "cancelled_by_user",
+      "refund_completed",
+      "refund_rejected",
     ];
 
     if (!validStatuses.includes(status)) {
@@ -75,7 +74,9 @@ console.log("updateStatus:",status)
 
     const updatedOrder = await prisma.order.update({
       where: { id: Number(orderId) },
-      data: { status },
+      data: { status ,
+        cancelOrRejectReason: reason
+      },
     });
     console.log(`Updated order Id:${orderId} status: ${status} `);
     return res
@@ -168,66 +169,48 @@ export const getmyOrder = async (req: Request, res: Response) => {
   console.log("order_getMine");
   try {
     const userId = (req as any).user.id;
-    const status = req.params.status;
-    console.log(`status:${status}`);
-
+    let statuses = req.query.status as string | string[];
+    console.log(`Received status query: ${statuses}`);
+    if (typeof statuses === "string") {
+      statuses = [statuses];
+    }
     const validStatuses = [
-      "awaiting_slip_upload",
-      "awaiting_confirmation",
-      "awaiting_rejection",
-      "order_approved",
-      "order_rejected",
-      "order_cancelled",
+      "pending_payment_proof",
+      "pending_payment_verification",
+      "payment_verified",
+      "cancelled_by_admin",
+      "cancelled_by_user",
+      "refund_completed",
+      "refund_rejected",
     ];
-    if (!validStatuses.includes(status)) {
+
+    if (!statuses.every((status) => validStatuses.includes(status))) {
       return res.status(400).json({
-        message:
-          "Invalid status. Valid statuses are: pending, confirmed, cancelled.",
+        message: `Invalid status. Valid statuses are: ${validStatuses.join(", ")}`,
       });
     }
-
     const orders = await prisma.order.findMany({
       where: {
         userId,
-        status,
+        status: { in: statuses },
       },
       include: {
         items: true,
       },
       orderBy: {
-        createdAt: "desc", // ✅ เรียงออเดอร์ใหม่ -> เก่า
+        createdAt: "desc", 
       },
     });
-    
 
-    // ส่งข้อมูล `orders` โดยตรง
     return res.status(200).json(orders);
   } catch (error) {
     console.error("Error in getmyOrder:", error);
     return res.status(500).json({ message: "Failed to get orders", error });
   }
 };
-//get order by just Id  will delete soon
-export const getOrderById = async (req: Request, res: Response) => {
-  console.log("order_getById");
-  try {
-    const userId = (req as any).user.id;
-    const orderId = Number(req.params.orderId);
-    if (!orderId) return res.status(400).json({ message: "No order Id" });
-    const order = await prisma.order.findUnique({
-      where: { id: orderId, userId: userId },
-      include: { items: true },
-    });
-    if (!order) return res.status(404).json({ message: "Order not found" });
-    return res.status(200).json(order);
-  } catch (error) {
-    console.error("Error in getOrderById:", error);
-    return res
-      .status(500)
-      .json({ message: "Failed to get order by Id", error });
-  }
-};
-///////////////////////////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////////////////////////////
+
 // delete order
 export const deleteOrder = async (req: Request, res: Response) => {
   console.log("order_delete");
@@ -292,13 +275,13 @@ export const updateOrderAddress = async (req: Request, res: Response) => {
       },
     });
 
-    // ตรวจสอบว่ามี slipUrl อยู่หรือไม่
+    // ตรวจสอบว่ามี slipUrl 
     if (updatedOrder.slipUrl) {
-      // หากมี slipUrl และ addressesId ให้เปลี่ยนสถานะเป็น awaiting_confirmation
+      // หากมี slipUrl และ addressesId ให้เปลี่ยนสถานะเป็น pending_payment_verification
       await prisma.order.update({
         where: { id: Number(orderId) },
         data: {
-          status: "awaiting_confirmation",
+          status: "pending_payment_verification",
         },
       });
     }
