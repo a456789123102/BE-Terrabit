@@ -8,7 +8,7 @@ const router = Router();
 
 router.patch("/:orderId/userUpdateStatus", verifyUser, updateOrderStatusByUser);
 router.patch("/:orderId/adminUpdateStatus", verifyAdmin, updateOrderStatusByAdmin);
-router.get("/:status/myOrder", verifyUser, getmyOrder);
+router.get("/myOrder", verifyUser, getmyOrder);
 router.delete("/:orderId/delete", verifyUser, deleteOrder);
 router.get("/all", verifyAdmin, getAllOrders);
 router.patch("/update/:orderId", verifyUser, updateOrderAddress);

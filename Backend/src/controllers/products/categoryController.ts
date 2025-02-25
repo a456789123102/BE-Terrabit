@@ -10,6 +10,12 @@ export const createCategory = async (req: Request, res: Response) => {
         if (!name) {
             return res.status(400).json({ message: 'Name is required' });
         }
+        const isExistingName = await prisma.category.findFirst({where:{
+            name
+        }})
+        if (isExistingName) {
+            return res.status(400).json({ message: 'Category name already exists' });
+        }
         
         const category = await prisma.category.create({
             data: {

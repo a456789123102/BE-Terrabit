@@ -67,7 +67,7 @@ export const verifyAdmin = async (
     if (!user.isAdmin) {
       return res
         .status(403)
-        .send({ message: "You do not have Permission to view this data" });
+        .send({ message: "You do not have Permission to Access this request" });
     }
 
     (req as CustomRequest).user = {

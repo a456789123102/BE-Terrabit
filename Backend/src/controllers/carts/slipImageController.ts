@@ -82,7 +82,7 @@ export const deleteSlip = async (req: Request, res: Response) => {
       where: { id: Number(orderId) },
       data: {
         slipUrl: null,
-        status: "awaiting_slip_upload",
+        status: "pending_payment_proof",
       },
     });
 

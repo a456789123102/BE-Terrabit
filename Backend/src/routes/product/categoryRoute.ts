@@ -10,8 +10,8 @@ import { Router } from "express";
 const router = Router();
 
 router.post("/create", verifyAdmin, createCategory);
-router.put("/update/:id", verifyAdmin, updateCategory);
-router.delete("/delete/:id", verifyAdmin, deleteCategory);
+router.patch("/:id/update", verifyAdmin, updateCategory);
+router.delete("/:id/delete", verifyAdmin, deleteCategory);
 router.get("/", getAllCategory);
 
 export default router;

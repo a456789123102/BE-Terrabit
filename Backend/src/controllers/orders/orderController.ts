@@ -11,6 +11,7 @@ export const updateOrderStatusByUser = async (req: Request, res: Response) => {
 
     const validStatuses = [
       "pending_payment_proof",
+      "pending_refound",
       "cancelled_by_user",
     ];
     if (!validStatuses.includes(status)) {
@@ -50,9 +51,11 @@ console.log("updateStatus:",status)
     const validStatuses = [
       "pending_payment_proof",
       "pending_payment_verification",
+      "pending_refound",
       "payment_verified",
       "cancelled_by_admin",
       "cancelled_by_user",
+      "pending_refound",
       "refund_completed",
       "refund_rejected",
     ];
@@ -177,6 +180,7 @@ export const getmyOrder = async (req: Request, res: Response) => {
     const validStatuses = [
       "pending_payment_proof",
       "pending_payment_verification",
+      "pending_refound",
       "payment_verified",
       "cancelled_by_admin",
       "cancelled_by_user",

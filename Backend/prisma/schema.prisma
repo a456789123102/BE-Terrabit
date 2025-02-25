@@ -84,7 +84,7 @@ model Order {
   id         Int      @id @default(autoincrement())
   userId     Int
   totalPrice Float?
-  status     String   @default("awaiting_slip_upload")
+  status     String   @default( "pending_payment_proof")
   slipUrl    String?
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt

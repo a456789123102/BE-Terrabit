@@ -157,8 +157,8 @@ export const getOrderForCharts = async (req: Request, res: Response) => {
         if (
           [
             "pending_payment_proof",
+            "pending_refound",
             "pending_payment_verification",
-            "awaiting_rejection",
           ].includes(order.status)
         ) {
           acc[label].pending += 1;
