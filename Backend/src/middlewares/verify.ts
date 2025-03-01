@@ -90,6 +90,7 @@ export const verifyPurchase = async (
 ) => {
   try {
     const { productId } = req.body;
+    if(!productId) return res.status(404).json({ message: "Invalid product ID" });
     const userId = (req as CustomRequest).user.id;
 
     if (!userId || !productId) {
@@ -101,7 +102,7 @@ export const verifyPurchase = async (
         productId: productId,
         order: {
           userId: userId,
-          status: "order_approved",
+          status: "payment_verified",
         },
       },
     });
@@ -144,3 +145,4 @@ export const verifyOptionalUser = async (
     res.status(500).json({ message: "Error while verifying token", error });
   }
 };
+

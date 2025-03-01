@@ -142,8 +142,9 @@ export const findAllProducts = async (req: Request, res: Response) => {
     const searchQuery = req.query.search as string | undefined;
     const categoryIds = req.query.category as string | string[] | undefined;
     const page = Number(req.query.page) || 1; // แปลง page เป็น Number หากไม่มีค่าให้ใช้เป็น 1
-    const sortBy = req.query.sortBy as string | undefined;
-    const sortOrder = req.query.sortOrder === "desc" ? "desc" : "asc";
+    const orderBy = (req.query.orderBy as "asc" | "desc") || "desc";
+    const orderWith = (req.query.orderWith as string) || "createdAt";
+    
     const pageSize = req.query.pageSize
       ? Number(req.query.pageSize)
       : undefined;
@@ -175,7 +176,9 @@ export const findAllProducts = async (req: Request, res: Response) => {
     const products = await prisma.product.findMany({
       skip: offset,
       take: pageSize,
-      orderBy: sortBy ? { [sortBy]: sortOrder } : undefined,
+      orderBy: {
+        [orderWith]: orderBy,
+      },
       where,
       include: {
         ProductCategory: {

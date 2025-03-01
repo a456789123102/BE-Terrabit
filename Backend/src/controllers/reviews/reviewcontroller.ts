@@ -175,7 +175,7 @@ export const getReviewsById = async (req: Request, res: Response) => {
             productId: productId,
             order: {
               userId: user.id,
-              status: "order_approved",
+              status: "payment_verified",
             },
           },
         });

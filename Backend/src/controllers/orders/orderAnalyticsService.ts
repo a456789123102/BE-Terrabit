@@ -129,7 +129,7 @@ export const getOrderForCharts = async (req: Request, res: Response) => {
       }
     }
 
-    // จัดกลุ่มข้อมูลจาก `orders`
+
     const groupedData = orders.reduce(
       (acc, order) => {
         const date = new Date(order.createdAt);
@@ -360,10 +360,13 @@ export const getTotalIncomesForCharts = async (req: Request, res: Response) => {
       { ...expectedData }
     );
 
-    // แปลง `groupedData` เป็น `result` และเรียงตามลำดับเวลา
-    const result = Object.values(groupedData).sort((a, b) =>
-      a.label.localeCompare(b.label)
-    );
+const result = Object.values(groupedData)
+  .map((item) => ({
+    ...item,
+    total: Number(item.total.toFixed(2)), 
+  }))
+  .sort((a, b) => a.label.localeCompare(b.label));
+
 
     if (result.length > 0) {
       const startDateObj = new Date(startDate);
@@ -384,7 +387,7 @@ export const getTotalIncomesForCharts = async (req: Request, res: Response) => {
             )}`;
       result[0] = { ...result[0], label: expectedStartLabel };
     }
-    const TotalIncomes = result.reduce((acc, cur) => acc + cur.total, 0);
+    const TotalIncomes = Number(result.reduce((acc, cur) => acc + cur.total, 0).toFixed(2));
     return res.status(200).json({
       totalIncomes: TotalIncomes,
       data: result,
@@ -438,7 +441,7 @@ export const getTopSellerItems = async (req: Request, res: Response) => {
       },
       where: {
         order: {
-          status: "order_approved",
+          status: "payment_verified",
         },
         ...(startDate || endDate
           ? {
@@ -486,7 +489,7 @@ export const getWeeklySaleForCharts = async (req: Request, res: Response) => {
 
     const weeklySalesData = await prisma.order.findMany({
       where: {
-        status: "order_approved",
+        status: "payment_verified",
         createdAt: {
           gte: startDate,
           lte: endDate,
@@ -500,13 +503,13 @@ export const getWeeklySaleForCharts = async (req: Request, res: Response) => {
 
     const totalSalesData = await prisma.order.aggregate({
       where: {
-        status: "order_approved",
+        status: "payment_verified",
       },
       _count: {
-        id: true, // นับจำนวน order
+        id: true,
       },
       _sum: {
-        totalPrice: true, // รวมยอดขายทั้งหมด
+        totalPrice: true, 
       },
     });
 
@@ -620,7 +623,7 @@ export const getYearlySaleForCharts = async (req: Request, res: Response) => {
 
     const totalSales = await prisma.order.findMany({
       where: {
-        status: "order_approved",
+        status:"payment_verified",
         createdAt: {
           gte: lastYear,
         },
@@ -634,7 +637,7 @@ export const getYearlySaleForCharts = async (req: Request, res: Response) => {
 
     const totalSalesLastYear = await prisma.order.aggregate({
       where: {
-        status: "order_approved",
+        status: "payment_verified",
         createdAt: {
           gte: lastYear,
           lte: endLastYear,
@@ -650,7 +653,7 @@ export const getYearlySaleForCharts = async (req: Request, res: Response) => {
 
     const totalSalesThisYear = await prisma.order.aggregate({
       where: {
-        status: "order_approved",
+        status: "payment_verified",
         createdAt: {
           gt: endLastYear,
         },
@@ -709,7 +712,11 @@ export const getYearlySaleForCharts = async (req: Request, res: Response) => {
       }
     });
 
-    const data = Object.values(expectedData);
+    const data = Object.values(expectedData).map((e) =>{
+      e.thisYearSales = Number(e.thisYearSales.toFixed(2));
+      e.lastYearSales = Number(e.lastYearSales.toFixed(2));
+      return e;
+    });
 
     const totalLastYearOrders = totalSalesLastYear._count.id || 0;
     const totalLastYearSales = totalSalesLastYear._sum.totalPrice || 0;

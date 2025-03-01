@@ -108,7 +108,10 @@ export const getAllOrders = async (req: Request, res: Response) => {
     const page = Math.max(Number(req.query.page) || 1, 1); 
     const pageSize = Math.max(Number(req.query.pageSize) || 0, 0) || undefined; 
     const offset = pageSize ? (page - 1) * pageSize : undefined;
-
+    const orderBy = (req.query.orderBy as "asc" | "desc") || "desc";
+    const orderWith = (req.query.orderWith as string) || "createdAt";
+    
+    console.log("orderBy: " + orderBy,"orderWith: " + orderWith)
     // สร้าง searchFilter
     const searchFilter =
       typeof searchQuery === "string" && searchQuery.trim().length > 0
@@ -139,7 +142,7 @@ export const getAllOrders = async (req: Request, res: Response) => {
       where: combinedFilter,
       include: { items: true },
       orderBy: {
-        createdAt: "desc", 
+        [orderWith]: orderBy,
       },
     });
 
