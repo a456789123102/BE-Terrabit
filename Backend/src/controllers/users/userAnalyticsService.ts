@@ -98,7 +98,7 @@ res.status(200).json({
   }
 };
 ///////////////////////////////////////////////////////////
-  export const getTotalReviewUsersForCharts = async (req: Request, res: Response) => {
+  export const getTotalUsersForCharts = async (req: Request, res: Response) => {
     console.log("order_getReviewsCharts");
   
     try {

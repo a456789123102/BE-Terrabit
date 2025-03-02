@@ -8,19 +8,22 @@ datasource db {
 }
 
 model User {
-  id        Int         @id @default(autoincrement())
-  email     String      @unique
-  username  String      @unique
-  password  String
-  isActive  Boolean     @default(true)
-  isAdmin   Boolean     @default(false)
-  createdAt DateTime    @default(now())
-  updatedAt DateTime    @updatedAt
-  Addresses Addresses[]
-  Cart      Cart[]
-  Order     Order[]
-  Review    Review[]
-  OrderItem OrderItem[]
+  id           Int            @id @default(autoincrement())
+  email        String         @unique
+  username     String         @unique
+  password     String
+  isActive     Boolean        @default(true)
+  isAdmin      Boolean        @default(false)
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  Addresses    Addresses[]
+  Cart         Cart[]
+  Order        Order[]
+  Review       Review[]
+  OrderItem    OrderItem[]
+  tickets      Ticket[]       @relation("UserTickets")
+  messages     Message[]      @relation("UserMessages")
+  Notification Notification[] @relation("UserNotifications")
 }
 
 model Product {
@@ -81,14 +84,14 @@ model Cart {
 }
 
 model Order {
-  id         Int      @id @default(autoincrement())
-  userId     Int
-  totalPrice Float?
-  status     String   @default( "pending_payment_proof")
-  slipUrl    String?
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-  cancelOrRejectReason String? 
+  id                   Int      @id @default(autoincrement())
+  userId               Int
+  totalPrice           Float?
+  status               String   @default("pending_payment_proof")
+  slipUrl              String?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+  cancelOrRejectReason String?
 
   Address     Addresses?  @relation(fields: [addressesId], references: [id])
   user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -210,4 +213,39 @@ model Tambon {
   zip_code   Int
 
   Addresses Addresses[]
+}
+
+model Ticket {
+  id        Int       @id @default(autoincrement())
+  user      User      @relation("UserTickets", fields: [userId], references: [id])
+  userId    Int
+  topic     String
+  details   String
+  isSolved  Boolean   @default(false)
+  messages  Message[] @relation("TicketMessages")
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  @@unique([userId, topic])
+}
+
+model Message {
+  id        Int      @id @default(autoincrement())
+  ticket    Ticket   @relation("TicketMessages", fields: [ticketId], references: [id])
+  ticketId  Int
+  sender    User     @relation("UserMessages", fields: [senderId], references: [id])
+  senderId  Int
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Notification {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  message   String
+  url       String?
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation("UserNotifications",fields: [userId], references: [id], onDelete: Cascade)
 }
