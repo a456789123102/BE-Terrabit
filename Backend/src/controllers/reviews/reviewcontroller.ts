@@ -264,6 +264,8 @@ export const getAllReviews = async (req: Request, res: Response) => {
               OR: [
                 { comments: { contains: search } },
                 { userName: { contains: search } },
+                { userId: isNaN(Number(search)) ? undefined : Number(search) }, 
+                { id: isNaN(Number(search)) ? undefined : Number(search) },
               ],
             }
           : {}),
@@ -273,8 +275,8 @@ export const getAllReviews = async (req: Request, res: Response) => {
 
       const pagination = {
         page: page,
-        totalPages: pageSize ? Math.ceil(totalReviews / pageSize) : 10, // ✅ แก้ Syntax Error
-        pageSize: pageSize ?? 10, // ✅ ถ้า pageSize เป็น undefined ให้ใช้ค่าเริ่มต้น 10
+        totalPages: pageSize ? Math.ceil(totalReviews / pageSize) : 10,
+        pageSize: pageSize ?? 10,
         totalReviews: totalReviews,
       };
       
