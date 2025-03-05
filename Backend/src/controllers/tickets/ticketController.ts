@@ -49,29 +49,40 @@ export const createTicket = async (req: Request, res: Response) => {
 // สร้างข้อความตอบกลับ0hk
 export const createReplyMessage = async (req: Request, res: Response) => {
     try {
-        const { ticketId, content } = req.body;
-        const user = (req as CustomRequest).user;
-        const ticket = await prisma.ticket.findUnique({where: {id: ticketId} });
-        if (!ticket) {
-            return res.status(404).json({ message: "Ticket not found" });
-        }
-        const userAcc = await prisma.user.findUnique({where: {id:user.id} });
-        if (!userAcc) {
-            return res.status(404).json({ message: "User not found" });
-        }
-        let isAdmin = null;
-        if(userAcc?.isAdmin){
-            isAdmin = true;
-        }else{
-            isAdmin = false;
-        }
-
-        const admins = await prisma.user.findMany({
-            where: { isAdmin: true,
-                isActive: true
-             },
-            select: { id: true } 
-        });
+      const {content} = req.body;
+      
+      // ตรวจสอบว่ามีค่า ticketId หรือไม่
+      const ticketId = parseInt(req.params.id);
+      
+      if (isNaN(ticketId)) {
+        return res.status(400).json({ message: "Invalid ticket ID" });
+      }
+  
+      const user = (req as CustomRequest).user;
+  
+      const ticket = await prisma.ticket.findUnique({
+        where: { id: ticketId }
+      });
+  
+      if (!ticket) {
+        return res.status(404).json({ message: "Ticket not found" });
+      }
+  
+      const userAcc = await prisma.user.findUnique({
+        where: { id: user.id },
+        select: {id:true, username:true,isAdmin: true }
+      });
+  
+      if (!userAcc) {
+        return res.status(404).json({ message: "User not found" });
+      }
+  
+      let isAdmin = userAcc.isAdmin ?? false;
+  
+      const admins = await prisma.user.findMany({
+        where: { isAdmin: true, isActive: true },
+        select: { id: true }
+      });
 
         const adminIds = admins.map(admin => admin.id);
 
@@ -103,6 +114,7 @@ export const createReplyMessage = async (req: Request, res: Response) => {
                 )
             );
         }
+        return res.status(201).json(reply);
 
     } catch (error) {
         console.error("Error creating reply message:", error);
@@ -114,15 +126,15 @@ export const createReplyMessage = async (req: Request, res: Response) => {
 // ดึงข้อมูล Ticket ทั้งหมด ทำ manage
 
 export const getAllTickets = async (req: Request, res: Response) => {
-    const search = (req.query.search as string) || "";
-    const orderBy = (req.query.orderBy as "asc" | "desc") || "desc";
-    const orderWith = (req.query.orderWith as string) || "createdAt";
-    const isSolved = req.query.isSolved ? String(req.query.isSolved) === "true" : undefined;
-    const page = Math.max(Number(req.query.page) || 1, 1);
-    const pageSize = Math.max(Number(req.query.pageSize) || 10, 1); 
-    const offset = (page - 1) * pageSize;
-
     try {
+        const search = (req.query.search as string) || "";
+        const orderBy = (req.query.orderBy as "asc" | "desc") || "desc";
+        const orderWith = (req.query.orderWith as string) || "createdAt";
+        const isSolved = req.query.isSolved ? String(req.query.isSolved) === "true" : undefined;
+        const page = Math.max(Number(req.query.page) || 1, 1);
+        const pageSize = Math.max(Number(req.query.pageSize) || 10, 1); 
+        const offset = (page - 1) * pageSize;
+    
         const tickets = await prisma.ticket.findMany({
             skip: offset,
             take: pageSize,
@@ -130,14 +142,14 @@ export const getAllTickets = async (req: Request, res: Response) => {
                 ...(search
                     ? {
                         OR: [
-                            { topic: { contains: search, mode: "insensitive" } },
-                            { details: { contains: search, mode: "insensitive" } },
-                            { userId: isNaN(Number(search)) ? undefined : Number(search) }, 
-                            { id: isNaN(Number(search)) ? undefined : Number(search) },
-                        ].filter(Boolean), 
+                            { topic: { contains: search } },
+                            { details: { contains: search } },
+                            !isNaN(Number(search)) ? { userId: Number(search) } : undefined,
+                            !isNaN(Number(search)) ? { id: Number(search) } : undefined,
+                        ].filter(Boolean) as any, 
                     }
                     : {}),
-                ...(isSolved !== undefined ? { isSolved } : {}), 
+                ...(isSolved !== undefined ? { isSolved } : {}),
             },
             orderBy: {
                 [orderWith]: orderBy,
@@ -153,16 +165,15 @@ export const getAllTickets = async (req: Request, res: Response) => {
 // ดึงticket ของตัวเอง
 
 export const getmyTickets = async (req: Request, res: Response) => {
-    const user = (req as CustomRequest).user;
-    const search = (req.query.search as string) || "";
-    const orderBy = (req.query.orderBy as "asc" | "desc") || "desc";
-    const orderWith = (req.query.orderWith as string) || "createdAt";
-    const isSolved = req.query.isSolved ? String(req.query.isSolved) === "true" : undefined;
-    const page = Math.max(Number(req.query.page) || 1, 1);
-    const pageSize = Math.max(Number(req.query.pageSize) || 10, 1); 
-    const offset = (page - 1) * pageSize;
-
     try {
+        const user = (req as CustomRequest).user;
+        const search = (req.query.search as string) || "";
+        const orderBy = (req.query.orderBy as "asc" | "desc") || "desc";
+        const orderWith = (req.query.orderWith as string) || "createdAt";
+        const isSolved = req.query.isSolved ? String(req.query.isSolved) === "true" : undefined;
+        const page = Math.max(Number(req.query.page) || 1, 1);
+        const pageSize = Math.max(Number(req.query.pageSize) || 10, 1); 
+        const offset = (page - 1) * pageSize;
         const tickets = await prisma.ticket.findMany({
             skip: offset,
             take: pageSize,
@@ -170,22 +181,30 @@ export const getmyTickets = async (req: Request, res: Response) => {
                 ...(search
                     ? {
                         OR: [
-                            { topic: { contains: search, mode: "insensitive" } },
-                            { details: { contains: search, mode: "insensitive" } },
-                            { userId: isNaN(Number(search)) ? undefined : Number(search) }, 
-                            { id: isNaN(Number(search)) ? undefined : Number(search) },
-                        ].filter(Boolean), 
+                            { topic: { contains: search } },
+                            { details: { contains: search } },
+                            !isNaN(Number(search)) ? { userId: Number(search) } : undefined,
+                            !isNaN(Number(search)) ? { id: Number(search) } : undefined,
+                        ].filter(Boolean) as any, 
                     }
-                    : {}),
-                ...(isSolved !== undefined ? { isSolved } : {}), 
+                    : {}), 
+                ...(isSolved !== undefined ? { isSolved } : {}),
                 userId: user.id,
             },
             orderBy: {
                 [orderWith]: orderBy,
             },
         });
+        
 
-        return res.status(200).json({ page, pageSize, tickets });
+        const pagination = {
+            page,
+            pageSize,
+            totalPages: Math.ceil(tickets.length / pageSize),
+            totalItems: tickets.length,
+        }
+
+        return res.status(200).json({ pagination, tickets });
     } catch (error) {
         console.error("Error fetching tickets:", error);
         return res.status(500).json({ message: "Error fetching tickets", error });
@@ -214,15 +233,19 @@ export const getTicketById = async (req: Request, res: Response) => {
         const ticket = await prisma.ticket.findUnique({
             where: { id: Number(id) },
             include: {
+                user: {
+                    select: {
+                        username: true,
+                        isAdmin: true,
+                    },
+                },
                 messages: {
                     select: {
-                      
                         content: true,
                         createdAt: true,
                         senderId: true,
                         sender: {
                             select: {
-                                id: true,
                                 username: true,
                             },
                         },
@@ -287,3 +310,31 @@ export const closeTicket = async (req: Request, res: Response) => {
     }
 };
 
+export const justCountTickets = async (req:Request,res:Response) => {
+    try {
+        const user = (req as CustomRequest).user;
+        
+        const requestUser = await prisma.user.findUnique({
+            where: { id: user.id },
+            select: { id: true, isAdmin: true },
+        });
+        const  isRequestAdmin = requestUser ? requestUser.isAdmin : false;
+
+        const ticketCount = await prisma.ticket.groupBy({
+            by: ["isSolved"],
+            where: !isRequestAdmin ? { userId: user.id } : {},
+            _count: {
+              isSolved: true,
+            },
+          });
+          const solvedCount = Number(ticketCount.find((item) => item.isSolved === true)?._count?.isSolved) || 0;
+          const unsolvedCount = Number(ticketCount.find((item) => item.isSolved === false)?._count?.isSolved) || 0;
+          
+          return res.status(200).json({ all: solvedCount + unsolvedCount, solved: solvedCount, unsolved: unsolvedCount });
+          
+    } catch (error) {
+        console.error("Error counting tickets:", error);
+        return res.status(500).json({ message: "Error counting tickets", error });
+        
+    }
+}
