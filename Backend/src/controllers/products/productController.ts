@@ -148,7 +148,6 @@ export const findAllProducts = async (req: Request, res: Response) => {
     const pageSize = req.query.pageSize
       ? Number(req.query.pageSize)
       : undefined;
-    console.log(`pagesize in BE: ${pageSize}`);
     const where: any = {};
 
     if (searchQuery) {
@@ -269,7 +268,6 @@ export const getProductById = async (req: Request, res: Response) => {
         Image: true,
       },
     });
-    console.log("Product Data:", product);
     // ตรวจสอบว่าพบสินค้าไหม
     if (!product) {
       return res.status(404).json({ message: "ไม่พบสินค้า" });

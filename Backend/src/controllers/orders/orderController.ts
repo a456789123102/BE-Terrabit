@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import { PrismaClient } from "@prisma/client";
+import  { CustomRequest } from "../../middlewares/verify";
 
 const prisma = new PrismaClient();
 
@@ -16,8 +17,7 @@ export const updateOrderStatusByUser = async (req: Request, res: Response) => {
     ];
     if (!validStatuses.includes(status)) {
       return res.status(400).json({
-        message:
-          "Invalid status.",
+        message: "Invalid status.",
       });
     }
     const existingOrder = await prisma.order.findUnique({
@@ -31,6 +31,28 @@ export const updateOrderStatusByUser = async (req: Request, res: Response) => {
       where: { id: Number(orderId) },
       data: { status },
     });
+
+    const admins = await prisma.user.findMany({
+      where: { isAdmin: true, isActive: true },
+      select: { id: true },
+    });
+
+    const adminIds = admins.map((admin) => admin.id);
+
+    await Promise.all(
+      adminIds.map((adminId) =>
+        prisma.notification.create({
+          data: {
+            userId: adminId,
+            message: `New Order Request From users ID: #${String(
+              orderId
+            ).padStart(4, "0")}`,
+            url: `/admin/manage/purchase`,
+          },
+        })
+      )
+    );
+
     return res
       .status(200)
       .json({ message: "Order status updated successfully.", updatedOrder });
@@ -46,8 +68,8 @@ export const updateOrderStatusByAdmin = async (req: Request, res: Response) => {
   console.log("order_updateStatusByAdmin");
   try {
     const { orderId } = req.params;
-    const { status ,reason} = req.body;
-console.log("updateStatus:",status)
+    const { status, reason } = req.body;
+    console.log("updateStatus:", status);
     const validStatuses = [
       "pending_payment_proof",
       "pending_payment_verification",
@@ -77,11 +99,21 @@ console.log("updateStatus:",status)
 
     const updatedOrder = await prisma.order.update({
       where: { id: Number(orderId) },
-      data: { status ,
-        cancelOrRejectReason: reason
-      },
+      data: { status, cancelOrRejectReason: reason },
     });
     console.log(`Updated order Id:${orderId} status: ${status} `);
+
+    await prisma.notification.create({
+      data: {
+        userId: existingOrder.userId,
+        message: `Your order ID: #${String(orderId).padStart(
+          4,
+          "0"
+        )} Status has been updated`,
+        url: `/user/purchase`,
+      },
+    });
+
     return res
       .status(200)
       .json({ message: "Order status updated successfully.", updatedOrder });
@@ -105,13 +137,13 @@ export const getAllOrders = async (req: Request, res: Response) => {
     const searchQuery = req.query.search as string | undefined;
 
     // Validate and default page and pageSize
-    const page = Math.max(Number(req.query.page) || 1, 1); 
-    const pageSize = Math.max(Number(req.query.pageSize) || 0, 0) || undefined; 
+    const page = Math.max(Number(req.query.page) || 1, 1);
+    const pageSize = Math.max(Number(req.query.pageSize) || 0, 0) || undefined;
     const offset = pageSize ? (page - 1) * pageSize : undefined;
     const orderBy = (req.query.orderBy as "asc" | "desc") || "desc";
     const orderWith = (req.query.orderWith as string) || "createdAt";
-    
-    console.log("orderBy: " + orderBy,"orderWith: " + orderWith)
+
+    console.log("orderBy: " + orderBy, "orderWith: " + orderWith);
     // สร้าง searchFilter
     const searchFilter =
       typeof searchQuery === "string" && searchQuery.trim().length > 0
@@ -127,7 +159,7 @@ export const getAllOrders = async (req: Request, res: Response) => {
                   ? undefined
                   : parseInt(searchQuery),
               }, // ค้นหา userId
-              { items: { some: { productName: { contains: searchQuery } } } }, 
+              { items: { some: { productName: { contains: searchQuery } } } },
             ].filter(Boolean),
           }
         : {};
@@ -158,7 +190,7 @@ export const getAllOrders = async (req: Request, res: Response) => {
       orders,
       pagination: {
         page,
-        pageSize: pageSize || totalOrders, 
+        pageSize: pageSize || totalOrders,
         totalOrders,
         totalPages,
       },
@@ -193,7 +225,9 @@ export const getmyOrder = async (req: Request, res: Response) => {
 
     if (!statuses.every((status) => validStatuses.includes(status))) {
       return res.status(400).json({
-        message: `Invalid status. Valid statuses are: ${validStatuses.join(", ")}`,
+        message: `Invalid status. Valid statuses are: ${validStatuses.join(
+          ", "
+        )}`,
       });
     }
     const orders = await prisma.order.findMany({
@@ -205,7 +239,7 @@ export const getmyOrder = async (req: Request, res: Response) => {
         items: true,
       },
       orderBy: {
-        createdAt: "desc", 
+        createdAt: "desc",
       },
     });
 
@@ -282,15 +316,34 @@ export const updateOrderAddress = async (req: Request, res: Response) => {
       },
     });
 
-    // ตรวจสอบว่ามี slipUrl 
+    //มี slipUrl
     if (updatedOrder.slipUrl) {
-      // หากมี slipUrl และ addressesId ให้เปลี่ยนสถานะเป็น pending_payment_verification
       await prisma.order.update({
         where: { id: Number(orderId) },
         data: {
           status: "pending_payment_verification",
         },
       });
+      const admins = await prisma.user.findMany({
+        where: { isAdmin: true, isActive: true },
+        select: { id: true },
+      });
+  
+      const adminIds = admins.map((admin) => admin.id);
+  
+      await Promise.all(
+        adminIds.map((adminId) =>
+          prisma.notification.create({
+            data: {
+              userId: adminId,
+              message: `New Order Request From users ID: #${String(
+                orderId
+              ).padStart(4, "0")}`,
+              url: `/admin/manage/purchase`,
+            },
+          })
+        )
+      );
     }
 
     return res.status(200).json({

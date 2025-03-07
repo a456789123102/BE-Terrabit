@@ -1,5 +1,7 @@
 import { Request, Response } from "express";
-import { PrismaClient, Prisma } from "@prisma/client";
+import { PrismaClient} from "@prisma/client";
+import  { CustomRequest } from "../../middlewares/verify";
+
 
 const prisma = new PrismaClient();
 
@@ -91,6 +93,56 @@ export const me = async (req: Request, res: Response) => {
 };
 //////////////////////////////////
 
+export const myInfo = async (req: Request, res: Response) => {
+  try {
+    console.log("user_me");
+    const userId = (req as any).user.id;
+    const users = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        email: true,
+        username: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+
+    const countAddress = await prisma.addresses.count({
+      where: { userId: userId },
+    });
+
+    const countTicket = await prisma.ticket.count({
+      where: { userId: userId },
+    });
+
+    const countOrder = await prisma.order.aggregate({
+      where: { userId: userId, status: "payment_verified" },
+      _count: {
+        id: true,
+      },
+      _sum: {
+        totalPrice: true,
+      },
+    });
+
+    const countOrderItems = await prisma.orderItem.count({
+      where: {
+        order: {
+          userId: userId, 
+          status: "payment_verified", 
+        },
+      },
+    });
+
+    res.status(200).json({ users,details:{ countAddress, countTicket, countOrder:countOrder._count.id,totalSpend:countOrder._sum.totalPrice, countOrderItems} });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Error while getting users", error });
+  }
+};
+/////////////////////////////////
+
 export const changeIsActiveStatus = async (req: Request, res: Response) => {
   try {
     console.log("user_changeIsActiveStatus");
@@ -116,3 +168,6 @@ export const changeIsActiveStatus = async (req: Request, res: Response) => {
       .json({ message: "Error while updating user status", error });
   }
 };
+
+///////////////////////
+

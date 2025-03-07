@@ -33,7 +33,7 @@ export const createTicket = async (req: Request, res: Response) => {
                     data: {
                         userId: adminId,
                         message: `New ticket created: #${ticket.id} - ${topic}`,
-                        url: ``,
+                        url: `/ticket/${ticket.id}/info`,
                     }
                 })
             )
@@ -63,6 +63,7 @@ export const createReplyMessage = async (req: Request, res: Response) => {
       const ticket = await prisma.ticket.findUnique({
         where: { id: ticketId }
       });
+      console.log("ticket",ticket);
   
       if (!ticket) {
         return res.status(404).json({ message: "Ticket not found" });
@@ -77,14 +78,6 @@ export const createReplyMessage = async (req: Request, res: Response) => {
         return res.status(404).json({ message: "User not found" });
       }
   
-      let isAdmin = userAcc.isAdmin ?? false;
-  
-      const admins = await prisma.user.findMany({
-        where: { isAdmin: true, isActive: true },
-        select: { id: true }
-      });
-
-        const adminIds = admins.map(admin => admin.id);
 
         const reply = await prisma.message.create({
             data: {
@@ -93,14 +86,25 @@ export const createReplyMessage = async (req: Request, res: Response) => {
                 senderId:user.id,
             }
         });
+
+        let isAdmin = userAcc.isAdmin ?? false;
+  
+        const admins = await prisma.user.findMany({
+          where: { isAdmin: true, isActive: true },
+          select: { id: true }
+        });
+  
+          const adminIds = admins.map(admin => admin.id);
+  
         if(isAdmin){
-            prisma.notification.create({
+            await prisma.notification.create({
                 data: {
                     userId: ticket.userId,
                     message: `New reply on ticket #${ticket.id}`,
-                    url: ``,
+                    url: `/ticket/${ticket.id}/info`,
                 }
             })
+            console.log("noti sending to user",ticket.userId)
         }else{
             await Promise.all(
                 adminIds.map(adminId =>
@@ -108,7 +112,7 @@ export const createReplyMessage = async (req: Request, res: Response) => {
                         data: {
                             userId: adminId,
                             message:  `New reply from user: ${userAcc.username} userId:${userAcc.id} on ticket #${ticket.id}`,
-                            url: ``,
+                            url: `/ticket/${ticket.id}/info`,
                         }
                     })
                 )
@@ -123,7 +127,6 @@ export const createReplyMessage = async (req: Request, res: Response) => {
     }
 }
 
-// ดึงข้อมูล Ticket ทั้งหมด ทำ manage
 
 export const getAllTickets = async (req: Request, res: Response) => {
     try {
@@ -174,6 +177,14 @@ export const getmyTickets = async (req: Request, res: Response) => {
         const page = Math.max(Number(req.query.page) || 1, 1);
         const pageSize = Math.max(Number(req.query.pageSize) || 10, 1); 
         const offset = (page - 1) * pageSize;
+
+        const reqUser = await prisma.user.findUnique(
+  {
+    where: { id: user.id },
+    select: { isAdmin: true }
+  }
+        )
+
         const tickets = await prisma.ticket.findMany({
             skip: offset,
             take: pageSize,
@@ -189,7 +200,7 @@ export const getmyTickets = async (req: Request, res: Response) => {
                     }
                     : {}), 
                 ...(isSolved !== undefined ? { isSolved } : {}),
-                userId: user.id,
+                ...( reqUser && reqUser.isAdmin ? {} : { userId: user.id }),
             },
             orderBy: {
                 [orderWith]: orderBy,
@@ -247,6 +258,7 @@ export const getTicketById = async (req: Request, res: Response) => {
                         sender: {
                             select: {
                                 username: true,
+                                isAdmin: true,
                             },
                         },
                     },
@@ -313,7 +325,7 @@ export const closeTicket = async (req: Request, res: Response) => {
 export const justCountTickets = async (req:Request,res:Response) => {
     try {
         const user = (req as CustomRequest).user;
-        
+
         const requestUser = await prisma.user.findUnique({
             where: { id: user.id },
             select: { id: true, isAdmin: true },

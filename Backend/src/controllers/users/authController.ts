@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
 import { CustomRequest } from '../../middlewares/verify';
-import { PrismaClient, Prisma } from "@prisma/client";
+import { PrismaClient} from "@prisma/client";
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -67,6 +67,90 @@ export const login = async (req:Request, res:Response) => {
   }
 }
 
-//find all users
+//change password
+export const changePassword = async (req: Request, res: Response) => {
+  try {
+    console.log("user_changePassword");
 
-//find one user
+    const userId = (req as CustomRequest).user.id;
+    const { oldPassword, newPassword } = req.body;
+
+    if (!oldPassword || !newPassword) {
+      return res.status(400).json({ message: "Both old and new passwords are required." });
+    }
+
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    const isPasswordValid = await bcrypt.compare(oldPassword, user.password);
+    if (!isPasswordValid) {
+      return res.status(401).json({ message: "incorrect old passwords." });
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    await prisma.user.update({
+      where: { id: userId },
+      data: { password: hashedPassword },
+    });
+
+    res.status(200).json({ message: "Password has been changed successfully." });
+  } catch (error) {
+    console.error("Error changing password:", error);
+    res.status(500).json({ message: "Error while changing password", error });
+  }
+};
+//////
+
+export const changeUsername = async (req: Request, res: Response) => {
+  try {
+    console.log("user_changeUsername");
+
+    const userId = (req as CustomRequest).user.id;
+    const { newUsername,oldPassword } = req.body;
+
+    if (!newUsername) {
+      return res.status(400).json({ message: "New username is required." });
+    }
+
+    if (!oldPassword) {
+      return res.status(400).json({ message: "password is required." });
+    }
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+
+    const isValidPassword = await bcrypt.compare(oldPassword,user.password);
+    if (!isValidPassword) {
+      return res.status(401).json({ message: "Incorrect passwords." });
+    }
+
+    const existingUser = await prisma.user.findUnique({
+      where: { username: newUsername },
+    });
+
+    if (existingUser) {
+      return res.status(409).json({ message: "Username is already taken. Please choose another." });
+    }
+
+    await prisma.user.update({
+      where: { id: userId },
+      data: { username: newUsername },
+    });
+
+    res.status(200).json({ message: `Username has been changed to ${newUsername}.` });
+  } catch (error) {
+    console.error("Error changing username:", error);
+    res.status(500).json({ message: "Error while changing username", error });
+  }
+};

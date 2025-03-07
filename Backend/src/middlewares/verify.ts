@@ -28,6 +28,11 @@ export const verifyUser = async (
     if (!user) {
       return res.status(404).send({ message: "User not found" });
     }
+    if (!user.isActive) {
+      return res
+       .status(401)
+       .send({ message: "User account is deactivated. Please contact support." });
+    }
 
     // ✅ เก็บ user ไว้ใน req แต่ไม่ต้องมี isAdmin
     (req as CustomRequest).user = {
@@ -69,6 +74,12 @@ export const verifyAdmin = async (
         .status(403)
         .send({ message: "You do not have Permission to Access this request" });
     }
+    if (!user.isActive) {
+      return res
+       .status(401)
+       .send({ message: "User account is deactivated. Please contact support." });
+    }
+
 
     (req as CustomRequest).user = {
       id: user.id,

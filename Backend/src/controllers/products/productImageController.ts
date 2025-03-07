@@ -20,11 +20,10 @@ export const uploadSingleProductImage = async (req: Request, res: Response) => {
     let uploadedImage;
 
     for (const fieldName of validFieldNames) {
-      const fileArray = files[fieldName]; // ตรวจสอบไฟล์ในฟิลด์นั้น
+      const fileArray = files[fieldName]; 
       if (fileArray && fileArray.length > 0) {
-        const file = fileArray[0]; // ใช้ไฟล์แรก (เนื่องจาก maxCount = 1)
+        const file = fileArray[0]; 
 
-        // ตรวจสอบว่า Product มีอยู่ในระบบ
         const product = await prisma.product.findUnique({
           where: { id: Number(productId) },
         });
@@ -32,7 +31,6 @@ export const uploadSingleProductImage = async (req: Request, res: Response) => {
           return res.status(404).json({ message: "Product not found." });
         }
 
-        // ตรวจสอบว่าภาพมีอยู่แล้วหรือไม่
         const isExistingImage = await prisma.productImage.findMany({
           where: {
             productId: Number(productId),
@@ -44,11 +42,8 @@ export const uploadSingleProductImage = async (req: Request, res: Response) => {
             message: `Image with name "${fieldName}" already exists for this product.`,
           });
         }
-
-        // อัปโหลดไฟล์ไปยัง Firebase
         const imageUrl = await uploadProductImageToFirebase(file);
 
-        // บันทึกข้อมูลลงฐานข้อมูล
         uploadedImage = await prisma.productImage.create({
           data: {
             name: fieldName,
@@ -57,11 +52,10 @@ export const uploadSingleProductImage = async (req: Request, res: Response) => {
           },
         });
 
-        break; // อัปโหลดเพียง 1 รูปต่อคำขอ
+        break; 
       }
     }
 
-    // หากไม่มีฟิลด์ใดตรงกับ validFieldNames
     if (!uploadedImage) {
       return res.status(400).json({
         message: `File field must be one of: ${validFieldNames.join(", ")}`,

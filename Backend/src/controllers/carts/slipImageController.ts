@@ -53,6 +53,26 @@
           status: "pending_payment_verification",
         },
       });
+      const admins = await prisma.user.findMany({
+        where: { isAdmin: true, isActive: true },
+        select: { id: true },
+      });
+  
+      const adminIds = admins.map((admin) => admin.id);
+  
+      await Promise.all(
+        adminIds.map((adminId) =>
+          prisma.notification.create({
+            data: {
+              userId: adminId,
+              message: `New Order Request From users ID: #${String(
+                orderId
+              ).padStart(4, "0")}`,
+              url: `/admin/manage/purchase`,
+            },
+          })
+        )
+      );
     }
 
     return res.status(200).json({
