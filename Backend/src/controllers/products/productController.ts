@@ -1,5 +1,8 @@
 import { Request, Response } from "express";
 import { PrismaClient } from "@prisma/client";
+const levenshtein = require("fast-levenshtein");
+
+
 
 const prisma = new PrismaClient();
 
@@ -291,18 +294,21 @@ export const getProductById = async (req: Request, res: Response) => {
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //getAllRelatedProducts
-export const getRelatedProducts = async (req:Request, res:Response) => {
+export const getRelatedProducts = async (req: Request, res: Response) => {
   try {
-    console.log("PRODUCTS_GETRELATED")
+    console.log("PRODUCTS_GETRELATED");
+
     const productId = parseInt(req.params.productId);
     const categoryIds = req.query.category as string | string[] | undefined;
     const name = req.query.name as string | undefined;
-    if(productId === undefined || categoryIds === undefined || name === undefined){
+
+    if (!productId || !categoryIds || !name) {
       return res.status(400).json({ message: "Invalid parameters" });
     }
+
     const categoryIdsArray = Array.isArray(categoryIds)
-    ? categoryIds.map((id) => parseInt(id))
-    : [parseInt(categoryIds)];
+      ? categoryIds.map((id) => parseInt(id))
+      : [parseInt(categoryIds)];
 
     const products = await prisma.product.findMany({
       where: {
@@ -338,31 +344,35 @@ export const getRelatedProducts = async (req:Request, res:Response) => {
       },
       take: 20, // ดึงข้อมูลมากกว่า 5 เพื่อตรวจสอบเพิ่มเติม
     });
-    
+
+    // ✅ คำนวณคะแนนความคล้ายของชื่อโดยใช้ Levenshtein Distance
     const relatedProducts = products
       .map(product => {
-        const matchScore = product.name.includes(name) ? 1 : 0; // คะแนนความคล้ายของชื่อ
-        const categoryMatchCount = 0//product.ProductCategory.filter((cat) =>
-          //categoryIdsArray.includes(cat.categoryId)
-      //  ).length; 
+        const nameDistance = levenshtein.get(name.toLowerCase(), product.name.toLowerCase());
+        const nameScore = 1 - nameDistance / Math.max(name.length, product.name.length); // Normalize เป็น 0-1
+
+        const categoryMatchCount = product.ProductCategory.filter((cat) =>
+          categoryIdsArray.includes(cat.categoryId)
+        ).length;
+
         return {
           ...product,
-          matchScore: matchScore + categoryMatchCount,
+          matchScore: nameScore + categoryMatchCount,
         };
       })
       .sort((a, b) => b.matchScore - a.matchScore) // เรียงลำดับคะแนนจากมากไปน้อย
-      .slice(0, 4); // จำกัดผลลัพธ์ที่ 5 รายการ
-    
+      .slice(0, 4); // จำกัดผลลัพธ์ที่ 4 รายการ
     
     return res.status(200).json({ relatedProducts });
     
   } catch (error) {
-    console.error("Error fetching related products:", error);
-    return res
-      .status(500)
-      .json({ message: "An error occurred while fetching related products" });
+    console.error("❌ Error fetching related products:", error);
+    return res.status(500).json({
+      message: "An error occurred while fetching related products",
+      error,
+    });
   }
-}
+};
 //////////////////////////////////////////////////////////
 export const deleteProduct = async (req: Request, res: Response) => {
   try {
@@ -382,6 +392,7 @@ export const deleteProduct = async (req: Request, res: Response) => {
     // ลบข้อมูลในตารางที่เกี่ยวข้อง
     await prisma.review.deleteMany({ where: { productId } });
     await prisma.cart.deleteMany({ where: { productId } });
+
     await prisma.orderItem.updateMany({
       where: { productId },
       data: { productId: null },
