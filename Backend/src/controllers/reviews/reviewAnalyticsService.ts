@@ -76,13 +76,19 @@ export const getWeeklyRatingForCharts = async (req: Request, res: Response) => {
           getWeekNumber(new Date(rating.createdAt))
         ).padStart(2, "0");
         const label = `${weekNum}-${new Date(rating.createdAt).getFullYear()}`;
+
+        if (!acc[label]) {
+          acc[label] = { label: `Week ${label}`, totalUserRatings: 0, averageRating: 0 };
+        }
+    
         acc[label].totalUserRatings++;
         acc[label].averageRating += rating.rating;
-
+    
         return acc;
       },
       { ...expectedData }
     );
+    
 
     const data = Object.values(groupedData).map((e) => ({
       ...e,

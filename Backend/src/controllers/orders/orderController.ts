@@ -243,7 +243,25 @@ export const getmyOrder = async (req: Request, res: Response) => {
       },
     });
 
-    return res.status(200).json(orders);
+    const countByStatus = await prisma.order.groupBy({
+      where: {
+        userId,
+      },
+      by: ['status'], 
+      _count: {
+        _all: true, 
+      },
+    });
+
+    const count =  countByStatus.map((s) => {
+      return {
+        status: s.status,
+        count: s._count._all,
+      };
+    })
+    
+
+    return res.status(200).json({orders,count});
   } catch (error) {
     console.error("Error in getmyOrder:", error);
     return res.status(500).json({ message: "Failed to get orders", error });

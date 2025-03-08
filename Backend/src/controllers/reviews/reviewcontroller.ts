@@ -235,6 +235,7 @@ export const getAllReviews = async (req: Request, res: Response) => {
     const isPublished =
       isPublishedParam !== undefined ? isPublishedParam === "true" : undefined;
     const page = Math.max(Number(req.query.page) || 1, 1);
+    console.log("page: " + req.query.page);
     const pageSize = Math.max(Number(req.query.pageSize) || 0, 0) || undefined;
     const offset = pageSize ? (page - 1) * pageSize : undefined;
 
